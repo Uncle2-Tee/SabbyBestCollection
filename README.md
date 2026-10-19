@@ -1,4 +1,4 @@
-# Doresther Tradings storefront
+# SabbyBestCollection storefront
 
 A polished, responsive Next.js ecommerce storefront with customer shopping and a private product-management workspace.
 
