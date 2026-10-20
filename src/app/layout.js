@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Doresther Tradings — Skincare, considered",
-  description: "A thoughtful collection of high-performance beauty essentials from Doresther Tradings.",
+  title: "SabbyBestCollection — Skincare, considered",
+  description: "A thoughtful collection of high-performance beauty essentials from SabbyBestCollection.",
 };
 
 export default function RootLayout({ children }) {

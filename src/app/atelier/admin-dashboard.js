@@ -121,7 +121,7 @@ export default function AdminDashboard({ username }) {
             if (typeof Notification !== "undefined" && Notification.permission === "granted") {
               new Notification(arrived.length === 1 ? "New customer order" : `${arrived.length} new customer orders`, {
                 body: arrived.slice(0, 3).map((order) => `${order.customer_name} · ${money.format(Number(order.total))}`).join("\n"),
-                tag: "doresther-new-orders",
+                tag: "sabbybestcollection-new-orders",
               });
             }
           }
@@ -313,7 +313,7 @@ export default function AdminDashboard({ username }) {
   }
 
   return <main className="dashboard-shell">
-    <header className="dashboard-header"><div className="atelier-brand brand-mark" aria-label="Doresther Tradings"><span className="brand-word">Doresther</span><span className="brand-tradings">Tradings</span></div><div className="dashboard-header-actions"><span className="secure-status">● Signed in as {username}</span><button type="button" className="dashboard-password-toggle" onClick={togglePasswordPanel} aria-expanded={passwordPanelOpen} aria-controls="admin-password-panel"><LockResetIcon fontSize="small" aria-hidden="true" />Change password</button><button onClick={signOut}>Sign out</button></div></header>
+    <header className="dashboard-header"><div className="atelier-brand brand-mark" aria-label="SabbyBestCollection"><span className="brand-word">Sabby</span><span className="brand-tradings">BestCollection</span></div><div className="dashboard-header-actions"><span className="secure-status">● Signed in as {username}</span><button type="button" className="dashboard-password-toggle" onClick={togglePasswordPanel} aria-expanded={passwordPanelOpen} aria-controls="admin-password-panel"><LockResetIcon fontSize="small" aria-hidden="true" />Change password</button><button onClick={signOut}>Sign out</button></div></header>
     {passwordPanelOpen && <section className="admin-password-panel" id="admin-password-panel" aria-labelledby="admin-password-heading">
       <div className="admin-password-panel-heading">
         <div><p className="atelier-kicker">Security</p><h2 id="admin-password-heading">Change password</h2></div>

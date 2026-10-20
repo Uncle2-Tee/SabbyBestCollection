@@ -20,7 +20,7 @@ import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import { signInCustomer, signOutCustomer, signUpCustomer, startCustomerVerification, verifyCustomerContact } from "../../lib/customer-auth-client";
 import { subscribeToCustomerOrderUpdates } from "../../lib/customer-order-updates";
 
-const notificationPreferenceKey = (userId) => `doresther:order-notifications:${userId}`;
+const notificationPreferenceKey = (userId) => `sabbybestcollection:order-notifications:${userId}`;
 
 function orderStatusLabel(status) {
   return status.replaceAll("_", " ");
@@ -170,7 +170,7 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
                 try {
                   new Notification("Your order has been updated", {
                     body: `Order ${order.id.slice(0, 8).toUpperCase()} is now ${orderStatusLabel(order.status)}.`,
-                    tag: `doresther-order-${order.id}`,
+                    tag: `sabbybestcollection-order-${order.id}`,
                   });
                 } catch (error) {
                   console.error("Could not show browser order notification:", error);
@@ -372,9 +372,9 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
     if (isRecoveringPassword) {
       return <section className="customer-account-root customer-auth-screen">
         <div className="customer-auth-card">
-          <div className="customer-auth-wordmark" aria-label="Doresther Trading">
-            <span className="customer-auth-monogram">D</span>
-            <span className="customer-auth-brand-name">Doresther <em>Trading</em></span>
+          <div className="customer-auth-wordmark" aria-label="SabbyBestCollection">
+            <span className="customer-auth-monogram">S</span>
+            <span className="customer-auth-brand-name">SabbyBestCollection</span>
           </div>
           <h1>Password Recovery</h1>
           <p className="customer-auth-intro">Email-based password recovery will be available when email delivery is configured. Contact the store for help with your account.</p>
@@ -384,9 +384,9 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
     }
     return <section className={`customer-account-root customer-auth-screen${isSigningUp ? " customer-signup-screen" : ""}`}>
       <div className="customer-auth-card">
-        <div className="customer-auth-wordmark" aria-label="Doresther Trading">
-          <span className="customer-auth-monogram">D</span>
-          <span className="customer-auth-brand-name">Doresther <em>Trading</em></span>
+        <div className="customer-auth-wordmark" aria-label="SabbyBestCollection">
+          <span className="customer-auth-monogram">S</span>
+          <span className="customer-auth-brand-name">SabbyBestCollection</span>
         </div>
         <h1>{isSigningUp ? "Create your account" : isVerifying ? "Verify your contact" : isSettingPassword ? "Set your password" : "Welcome Back"}</h1>
         <p className="customer-auth-intro">{isSigningUp
@@ -395,7 +395,7 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
             ? `Enter the six-digit code sent to ${verificationDestination}.`
             : isSettingPassword
               ? "Choose a password to secure your new account."
-              : "Log in to continue to your Doresther Trading account."}</p>
+              : "Log in to continue to your SabbyBestCollection account."}</p>
         <form onSubmit={submitAuth}>
           {(isSigningUp || (isSigningIn && !isPasswordOnlyLogin)) && <label htmlFor="customer-identifier">Email or phone number<input id="customer-identifier" name="identifier" type="text" autoComplete="username" placeholder="e.g. elliot@example.com or +233 24 123 4567" required maxLength={254} value={form.identifier} onChange={(event) => setForm({ ...form, identifier: event.target.value })} /></label>}
           {isPasswordOnlyLogin && <div className="customer-auth-identifier"><span>{form.identifier}</span><button className="account-text-action" type="button" onClick={() => { setPasswordOnlyLogin(false); setMessage(""); setForm((current) => ({ ...current, password: "" })); }}>Change</button></div>}
@@ -422,7 +422,7 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
           {message && <p className="customer-account-notice" role="status" aria-live="polite">{message}</p>}
           <button className="primary-button wide" type="submit" disabled={busy}>{busy ? "Please wait…" : isSigningUp ? "Continue" : isVerifying ? "Verify code" : isSettingPassword ? "Create account" : "Log In"}</button>
         </form>
-        {isSigningUp || isSigningIn ? <p className="customer-auth-switch">{isSigningUp ? "Already have an account?" : "New to Doresther Trading?"}
+        {isSigningUp || isSigningIn ? <p className="customer-auth-switch">{isSigningUp ? "Already have an account?" : "New to SabbyBestCollection?"}
           <button className="account-text-action" type="button" disabled={busy} onClick={() => { setAuthMode(isSigningUp ? "signin" : "signup"); setPasswordOnlyLogin(false); setMessage(""); setShowPassword(false); setShowConfirmPassword(false); setForm((current) => ({ ...current, password: "", confirmPassword: "", verificationCode: "" })); }}>
             {isSigningUp ? "Log In" : "Sign Up"}
           </button>

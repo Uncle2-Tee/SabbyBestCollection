@@ -2,7 +2,7 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { hashPassword, verifyPassword } from "./customer-auth";
 import { prisma } from "./prisma";
 
-export const ADMIN_SESSION_COOKIE = "doresther_admin_session";
+export const ADMIN_SESSION_COOKIE = "sabbybestcollection_admin_session";
 const SESSION_MAX_AGE = 60 * 60 * 8;
 const ADMIN_CREDENTIAL_ID = "admin";
 

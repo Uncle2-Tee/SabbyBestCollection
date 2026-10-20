@@ -5,7 +5,7 @@ import AdminLogin from "./admin-login";
 import "./atelier.css";
 
 export const metadata = {
-  title: "Store Admin | Doresther Tradings",
+  title: "Store Admin | SabbyBestCollection",
   robots: { index: false, follow: false },
 };
 

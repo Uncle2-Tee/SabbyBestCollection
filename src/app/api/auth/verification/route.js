@@ -21,8 +21,8 @@ async function sendEmailCode(email, code) {
     body: JSON.stringify({
       from,
       to: [email],
-      subject: "Your Doresther verification code",
-      text: `Your Doresther verification code is ${code}. It expires in five minutes.`,
+      subject: "Your SabbyBestCollection verification code",
+      text: `Your SabbyBestCollection verification code is ${code}. It expires in five minutes.`,
     }),
     signal: AbortSignal.timeout(10000),
   });
@@ -41,7 +41,7 @@ async function sendPhoneCode(number) {
       expiry: 5,
       length: 6,
       medium: "sms",
-      message: "Your Doresther verification code is %otp_code%. It expires in 5 minutes.",
+      message: "Your SabbyBestCollection verification code is %otp_code%. It expires in 5 minutes.",
       number,
       sender_id: senderId,
       type: "numeric",

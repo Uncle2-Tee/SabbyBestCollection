@@ -10,13 +10,15 @@ function pooledDatabaseUrl(databaseUrl) {
   return url.toString();
 }
 
+const databaseUrl = pooledDatabaseUrl(process.env.DATABASE_URL);
+
 export const prisma =
   globalForPrisma.prisma ??
-  new PrismaClient({
+  new PrismaClient(databaseUrl ? {
     datasources: {
-      db: { url: pooledDatabaseUrl(process.env.DATABASE_URL) },
+      db: { url: databaseUrl },
     },
-  });
+  } : undefined);
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;

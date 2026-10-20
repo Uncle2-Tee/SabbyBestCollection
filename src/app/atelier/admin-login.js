@@ -29,9 +29,9 @@ export default function AdminLogin({ configured }) {
 
   return <main className="atelier-shell">
     <section className="admin-login-layout" aria-labelledby="admin-login-title">
-      <div className="atelier-brand brand-mark" aria-label="Doresther Tradings">
-        <span className="brand-word">Doresther</span>
-        <span className="brand-tradings">Tradings</span>
+      <div className="atelier-brand brand-mark" aria-label="SabbyBestCollection">
+        <span className="brand-word">Sabby</span>
+        <span className="brand-tradings">BestCollection</span>
       </div>
       <div className="admin-login-main">
         <div className="admin-login-heading">

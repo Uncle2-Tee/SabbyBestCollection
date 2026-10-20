@@ -4,7 +4,7 @@ import { prisma } from "./prisma";
 
 const scryptAsync = promisify(scrypt);
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
-export const CUSTOMER_SESSION_COOKIE = "doresther_customer_session";
+export const CUSTOMER_SESSION_COOKIE = "sabbybestcollection_customer_session";
 
 export const customerSessionCookieOptions = {
   httpOnly: true,
@@ -56,14 +56,19 @@ export async function createCustomerSession(profile, database = prisma) {
 
 export async function getAuthenticatedUser(request) {
   const token = request.cookies?.get(CUSTOMER_SESSION_COOKIE)?.value;
-  if (!token) return null;
+  if (!token || !process.env.DATABASE_URL) return null;
 
-  const session = await prisma.customerSession.findUnique({
-    where: { tokenHash: hashSessionToken(token) },
-    include: { user: true },
-  });
-  if (!session || session.expiresAt <= new Date()) return null;
-  return session.user;
+  try {
+    const session = await prisma.customerSession.findUnique({
+      where: { tokenHash: hashSessionToken(token) },
+      include: { user: true },
+    });
+    if (!session || session.expiresAt <= new Date()) return null;
+    return session.user;
+  } catch (error) {
+    console.error("Could not resolve customer session:", error);
+    return null;
+  }
 }
 
 export function sessionResponse(profile) {

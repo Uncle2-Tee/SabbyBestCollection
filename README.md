@@ -59,7 +59,7 @@ Add these values to `.env.local` for local development and to the deployment env
 
 ```dotenv
 RESEND_API_KEY=your-resend-api-key
-RESEND_FROM_EMAIL=Doresther Tradings <verified-sender@example.com>
+RESEND_FROM_EMAIL=SabbyBestCollection <verified-sender@example.com>
 ARKESEL_API_KEY=your-arkesel-main-api-key
 ARKESEL_SENDER_ID=your-registered-sender-id
 ```
