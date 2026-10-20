@@ -418,7 +418,7 @@ export default function Home() {
       <section className={`shop-section${activeView === "categories" ? " category-shop-section" : ""}`} id="shop">
         <header className="catalog-heading">
           <div>
-           
+
             <h1>{activeView === "categories" ? "Shop by category" : "The collections"}</h1>
           </div>
           <p>{activeView === "categories"
