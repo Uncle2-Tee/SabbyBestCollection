@@ -10,9 +10,11 @@ npm run dev
 
 Visit `http://localhost:3000` for the customer storefront.
 
+Without `DATABASE_URL`, local development shows the sample product catalogue. Database-backed features, including customer accounts, orders, and product management, require PostgreSQL to be configured as described below.
+
 ## Private admin workspace
 
-The admin workspace is intentionally unlinked from the storefront and excluded from search indexing. Its route is `/atelier`.
+The admin workspace is intentionally unlinked from the storefront and excluded from search indexing. Its route is `/admin`. From the dashboard, admins can update the three home-page hero images by uploading replacements and saving the changes.
 
 Before using it, copy `.env.example` to `.env.local` and set the admin and PostgreSQL values:
 
@@ -39,7 +41,7 @@ npx prisma db execute --schema prisma/schema.prisma --file prisma/enable-rls.sql
 npm run db:seed
 ```
 
-The seed command adds the existing starter catalogue products without replacing products already in the database. The application connects to PostgreSQL only from server routes through Prisma. Do not expose database credentials to browser code. Restart the development server after editing `.env.local`.
+The seed command removes the six retired skincare demo products by their original IDs, adds the current starter catalogue, and leaves other products unchanged. You can remove the sample products from the admin workspace as you replace them with your own catalogue. The application connects to PostgreSQL only from server routes through Prisma. Do not expose database credentials to browser code. Restart the development server after editing `.env.local`.
 
 After applying the schema, admins can change their password from the dashboard. The new password is scrypt-hashed in the `admin_credentials` table; `ADMIN_PASSWORD` remains the bootstrap password until the first change. Changing it signs out other admin sessions while keeping the current session active. For password recovery, delete the `admin` row from `public.admin_credentials` in a trusted database console; the configured `ADMIN_PASSWORD` can then be used to sign in again.
 

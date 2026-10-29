@@ -63,6 +63,12 @@ export async function PATCH(request) {
     return NextResponse.json({ error: "A product and at least one change are required." }, { status: 400 });
   }
   const update = { updatedAt: new Date() };
+  if (Object.hasOwn(changes, "name")) {
+    if (typeof changes.name !== "string" || !changes.name.trim() || changes.name.trim().length > 200) {
+      return NextResponse.json({ error: "Product name must be between 1 and 200 characters." }, { status: 400 });
+    }
+    update.name = changes.name.trim();
+  }
   if (Object.hasOwn(changes, "price")) {
     const price = Number(changes.price);
     if (!Number.isFinite(price) || price <= 0) return NextResponse.json({ error: "Price must be greater than zero." }, { status: 400 });
@@ -72,7 +78,7 @@ export async function PATCH(request) {
     if (typeof changes.cardDescription !== "string") return NextResponse.json({ error: "The featured description must be text." }, { status: 400 });
     update.cardDescription = changes.cardDescription;
   }
-  if (Object.keys(changes).some((key) => key !== "price" && key !== "cardDescription")) {
+  if (Object.keys(changes).some((key) => key !== "name" && key !== "price" && key !== "cardDescription")) {
     return NextResponse.json({ error: "Unsupported product fields." }, { status: 400 });
   }
 

@@ -27,6 +27,7 @@ import StarIcon from "@mui/icons-material/StarRounded";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import Image from "next/image";
 import { defaultProductCaution, defaultProductUsage, initialProducts, productCategories } from "../lib/catalog";
+import { defaultHomepageImages } from "../lib/homepage-images";
 import CustomerAccount from "./components/customer-account";
 import { publishCustomerSession, subscribeToCustomerSession } from "../lib/customer-session";
 
@@ -84,6 +85,7 @@ function ProductGuideList({ content, numbered = false }) {
 
 export default function Home() {
   const [products, setProducts] = useState(initialProducts);
+  const [homepageImages, setHomepageImages] = useState(defaultHomepageImages);
   const [cart, setCart] = useState([]);
   const [wishlist, setWishlist] = useState([]);
   const [activeCategory, setActiveCategory] = useState("All");
@@ -119,6 +121,22 @@ export default function Home() {
   useEffect(() => {
     const readyTimer = window.setTimeout(() => setLoaded(true), 0);
     return () => window.clearTimeout(readyTimer);
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/homepage", { cache: "no-store" })
+      .then(async (response) => {
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.error || "Could not load homepage images.");
+        if (!body.images || !Object.keys(defaultHomepageImages).every((key) => typeof body.images[key] === "string")) {
+          throw new Error("The homepage image settings are invalid.");
+        }
+        if (!cancelled) setHomepageImages(body.images);
+      })
+      .catch((error) => {
+        if (!cancelled) console.error("Could not load homepage images:", error);
+      });
+    return () => { cancelled = true; };
   }, []);
   useEffect(() => {
     if (!loaded || !authChecked) return undefined;
@@ -386,7 +404,7 @@ export default function Home() {
   const customerAccount = <CustomerAccount session={customerSession} onSignInSuccess={handleSignInSuccess} onAccountUpdated={handleAccountUpdated} activeSection={activeAccountSection} onSelectSection={selectAccountSection} onBackToSections={() => setMobileAccountSectionOpen(false)} mobileSectionOpen={mobileAccountSectionOpen} wishlistProducts={wishlistProducts} onAddToCart={addToCart} onRemoveFromWishlist={removeFromWishlist} onOpenCart={() => setCartOpen(true)} cartCount={cartCount} refreshKey={ordersVersion} />;
 
   return <main className={`page-view page-${activeView}${mobileAccountSectionOpen ? " mobile-account-section-open" : ""}`}>
-    <header className="site-header"><button className="brand brand-mark" type="button" onClick={() => navigateTo("home")} aria-label="SabbyBestCollection home"><Image src="/sabby-best-collection-logo.png" alt="" width={80} height={75} priority /></button><nav className="main-nav" aria-label="Main navigation"><button className={activeView === "home" ? "active" : ""} onClick={() => navigateTo("home")}>Home</button><button className={activeView === "shop" ? "active" : ""} onClick={() => navigateTo("shop")}>Shop</button><button className={activeView === "categories" ? "active" : ""} onClick={() => navigateTo("categories")}>Categories</button><button className={activeView === "about" ? "active" : ""} onClick={() => navigateTo("about")}>About</button></nav><div className="header-actions"><button className="icon-button mobile-wishlist-toggle" onClick={openWishlist} aria-label={`Wishlist, ${wishlistProducts.length} saved items`}><Icon name="heart" /></button><button className="bag-button" onClick={() => setCartOpen(true)} aria-label={`Open cart, ${cartCount} items`}><Icon name="bag" /><span>Cart</span><b>{cartCount}</b></button><button className="icon-button account-toggle" onClick={() => navigateTo("account")} aria-label="Account"><Icon name="user" /></button></div></header>
+    <header className="site-header"><button className="brand brand-mark" type="button" onClick={() => navigateTo("home")} aria-label="SabbyBestCollection home"><Image src="/sabby-best-collection-logo.png" alt="" width={80} height={75} priority /></button><nav className="main-nav" aria-label="Main navigation"><button className={activeView === "home" ? "active" : ""} onClick={() => navigateTo("home")}>Home</button><button className={activeView === "shop" ? "active" : ""} onClick={() => navigateTo("shop")}>Shop</button><button className={activeView === "categories" ? "active" : ""} onClick={() => navigateTo("categories")}>Categories</button><button className={activeView === "about" ? "active" : ""} onClick={() => navigateTo("about")}>About</button></nav><div className="header-actions"><button className="icon-button mobile-wishlist-toggle" onClick={openWishlist} aria-label={`Wishlist, ${wishlistProducts.length} saved items`}><Icon name="heart" /></button><button className="icon-button account-toggle" onClick={() => navigateTo("account")} aria-label="Account"><Icon name="user" /></button><button className="bag-button" onClick={() => setCartOpen(true)} aria-label={`Open cart, ${cartCount} items`}><Icon name="bag" /><span>Cart</span><b>{cartCount}</b></button></div></header>
     <nav className="mobile-bottom-nav" aria-label="Quick navigation"><button className={activeView === "home" ? "active" : ""} onClick={() => navigateTo("home")} aria-current={activeView === "home" ? "page" : undefined}><Icon name="home" size={20} /><span>Home</span></button><button className={activeView === "shop" ? "active" : ""} onClick={() => navigateTo("shop")} aria-current={activeView === "shop" ? "page" : undefined}><Icon name="shop" size={20} /><span>Shop</span></button><button className={activeView === "categories" ? "active" : ""} onClick={() => navigateTo("categories")} aria-current={activeView === "categories" ? "page" : undefined}><Icon name="shop" size={20} /><span>Categories</span></button><button className={activeView === "about" ? "active" : ""} onClick={() => navigateTo("about")} aria-current={activeView === "about" ? "page" : undefined}><Icon name="info" size={20} /><span>About</span></button><button className={activeView === "account" ? "active" : ""} onClick={() => navigateTo("account")} aria-current={activeView === "account" ? "page" : undefined}><Icon name="user" size={20} /><span>Account</span></button></nav>
     {activeView === "account" && customerAccount}
     {activeView === "wishlist" && <section className="account-page wishlist-page">
@@ -413,7 +431,7 @@ export default function Home() {
         <button className="primary-button" onClick={() => navigateTo("shop")}>Continue Shopping <Icon name="arrow" size={17} /></button>
       </div>}
     </section>}
-    <section className="hero" id="top"><div className="hero-copy"><p className="hero-tag"></p><h1>Discover<br />Style That<br />Defines You</h1><p className="hero-text">Elevate your style with our curated collection of premium essentials. Thoughtful picks, unmatched quality.</p><div className="hero-actions"><button onClick={() => navigateTo("shop")} className="primary-button">Shop Now </button><button onClick={() => navigateTo("shop")} className="secondary-button"><span aria-hidden="true">▷</span> View Lookbook</button></div><div className="hero-benefits"><span><Icon name="bag" size={15} /></span><span><Icon name="returns" size={15} /></span><span><Icon name="help" size={15} /> 24/7 Support</span></div></div><div className="hero-visual" aria-label="Explore the latest SabbyBestCollection looks"><div className="hero-editorial-image" role="img" aria-label="Model wearing an elegant orange outfit" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=1200&q=88)" }} /><div className="hero-lookbook-image" role="img" aria-label="A look from the new collection" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=640&q=88)" }} /><div className="hero-detail-image" role="img" aria-label="A closer look at the latest collection" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=640&q=88)" }} /><div className="hero-trending-badge">🔥 Trending</div><div className="hero-discount-badge">-40% OFF</div><article className="hero-rating-card"><span aria-hidden="true">★</span><div><strong>4.9 Rating</strong><small>2k+ Reviews</small></div></article></div></section>
+    <section className="hero" id="top"><div className="hero-copy"><p className="hero-tag"></p><h1>Discover<br />Style That<br />Defines You</h1><p className="hero-text">Elevate your style with our curated collection of premium essentials. Thoughtful picks, unmatched quality.</p><div className="hero-actions"><button onClick={() => navigateTo("shop")} className="primary-button">Shop Now </button><button onClick={() => navigateTo("shop")} className="secondary-button"><span aria-hidden="true">▷</span> View Lookbook</button></div><div className="hero-benefits"><span><Icon name="help" size={15} /> 24/7 Support</span></div></div><div className="hero-visual" aria-label="Explore the latest SabbyBestCollection looks"><div className="hero-editorial-image" role="img" aria-label="Model wearing an elegant orange outfit" style={{ backgroundImage: `url("${homepageImages.heroEditorial}")` }} /><div className="hero-lookbook-image" role="img" aria-label="A look from the new collection" style={{ backgroundImage: `url("${homepageImages.heroLookbook}")` }} /><div className="hero-detail-image" role="img" aria-label="A closer look at the latest collection" style={{ backgroundImage: `url("${homepageImages.heroDetail}")` }} /><div className="hero-trending-badge">🔥 Trending</div><div className="hero-discount-badge">-40% OFF</div><article className="hero-rating-card"><span aria-hidden="true">★</span><div><strong>4.9 Rating</strong><small>2k+ Reviews</small></div></article></div></section>
     {(activeView === "shop" || activeView === "categories" || activeView === "about") && <>
       <section className={`shop-section${activeView === "categories" ? " category-shop-section" : ""}`} id="shop">
         <header className="catalog-heading">
@@ -434,7 +452,7 @@ export default function Home() {
               </button>;
             })}
           </div>}
-          <label className="search-box"><Icon name="search" size={18} /><input id="catalog-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search products" /></label>
+          <label className="search-box"><Icon name="search" size={18} /><input id="catalog-search" type="search" aria-label="Search products by name or category" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search products" /></label>
         </div>
         <div className="product-results-summary" aria-live="polite">
           <span>{filteredProducts.length} {filteredProducts.length === 1 ? "product" : "products"}</span>
@@ -448,7 +466,7 @@ export default function Home() {
           <p className="eyebrow">About SabbyBestCollection</p>
           <div className="about-intro-content">
             <h1>Good care.<br /><em>Made simple.</em></h1>
-            <p>We believe shopping should be simple, convenient, and enjoyable. SabbyBestCollection brings carefully selected beauty and personal-care products from trusted sellers directly to customers.</p>
+            <p>We believe shopping should be simple, convenient, and enjoyable. SabbyBestCollection brings carefully selected fashion, home, and everyday essentials from trusted sellers directly to customers.</p>
           </div>
           <div className="about-intro-footer"><span>Thoughtful finds</span><span>Dependable service</span><span>Everyday essentials</span></div>
         </header>
@@ -465,7 +483,7 @@ export default function Home() {
             <p>From choosing a product to getting help with an order, we want every step to feel straightforward.</p>
           </div>
           <div className="about-benefit-list">
-            <article><span>01</span><div><h3>Considered quality</h3><p>A thoughtful selection of beauty and personal-care products from trusted sellers.</p></div></article>
+            <article><span>01</span><div><h3>Considered quality</h3><p>A thoughtful selection of fashion, home, and everyday essentials from trusted sellers.</p></div></article>
             <article><span>02</span><div><h3>Convenient delivery</h3><p>Delivery options designed to help your order reach you promptly.</p></div></article>
             <article><span>03</span><div><h3>Clear payments</h3><p>Choose from the payment options available at checkout.</p></div></article>
             <article><span>04</span><div><h3>Helpful support</h3><p>Reach our team by phone or WhatsApp whenever you need assistance.</p></div></article>

@@ -104,6 +104,16 @@ model ProductImage {
   @@map("product_images")
 }
 
+model HomepageSettings {
+  id              String   @id @default("homepage")
+  heroEditorial   String   @map("hero_editorial")
+  heroLookbook    String   @map("hero_lookbook")
+  heroDetail      String   @map("hero_detail")
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("homepage_settings")
+}
+
 model AdminCredential {
   id             String   @id @default("admin")
   passwordHash   String   @map("password_hash")

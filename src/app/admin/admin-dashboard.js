@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import NotificationsIcon from "@mui/icons-material/NotificationsNone";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import LockResetIcon from "@mui/icons-material/LockReset";
@@ -10,10 +11,16 @@ import VisibilityIcon from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOffOutlined";
 import { defaultProductCaution, defaultProductUsage, productCategories } from "../../lib/catalog";
 import { notifyCustomerOrderUpdate } from "../../lib/customer-order-updates";
+import { defaultHomepageImages } from "../../lib/homepage-images";
 
 const money = new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS", minimumFractionDigits: 2 });
-const emptyForm = { name: "", category: "Serums", price: "", size: "", image: "", description: "", cardDescription: "", howToUse: defaultProductUsage, caution: defaultProductCaution };
+const emptyForm = { name: "", category: "Dresses", price: "", size: "", image: "", description: "", howToUse: defaultProductUsage, caution: defaultProductCaution };
 const orderStatuses = ["awaiting_payment", "payment_review", "processing", "shipped", "delivered", "cancelled"];
+const homepageImageFields = [
+  { key: "heroEditorial", label: "Main hero image", description: "The large image in the home-page hero." },
+  { key: "heroLookbook", label: "Lookbook image", description: "The smaller overlapping image on the left." },
+  { key: "heroDetail", label: "Detail image", description: "The smaller overlapping image on the right." },
+];
 
 function timeBasedGreeting() {
   const hour = new Date().getHours();
@@ -56,12 +63,24 @@ async function readApiResponse(response) {
   return body;
 }
 
+async function uploadImageFile(file) {
+  if (file.size < 1 || file.size > 5 * 1024 * 1024) throw new Error("Image file must be smaller than 5 MB.");
+  if (!file.type.startsWith("image/")) throw new Error("File must be an image.");
+  const formData = new FormData();
+  formData.append("file", file);
+  const { url } = await readApiResponse(await fetch("/api/admin/upload-image", { method: "POST", body: formData }));
+  return url;
+}
+
 export default function AdminDashboard({ username }) {
   const greeting = useSyncExternalStore(subscribeToTimeGreeting, timeBasedGreeting, getServerGreeting);
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState(emptyForm);
+  const [nameDrafts, setNameDrafts] = useState({});
   const [priceDrafts, setPriceDrafts] = useState({});
-  const [featuredDescription, setFeaturedDescription] = useState("");
+  const [homepageImages, setHomepageImages] = useState(defaultHomepageImages);
+  const [homepageImagesSaving, setHomepageImagesSaving] = useState(false);
+  const [homepageImageUploading, setHomepageImageUploading] = useState("");
   const [message, setMessage] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
   const [databaseReady, setDatabaseReady] = useState(false);
@@ -96,8 +115,18 @@ export default function AdminDashboard({ username }) {
       .then(({ products: saved }) => {
         if (cancelled) return;
         setProducts(saved);
-        setFeaturedDescription(saved[0]?.cardDescription ?? saved[0]?.description ?? "");
         setDatabaseReady(true);
+      })
+      .catch((error) => { if (!cancelled) setMessage(error.message); });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/admin/homepage")
+      .then(readApiResponse)
+      .then(({ images }) => {
+        if (!cancelled) setHomepageImages(images);
       })
       .catch((error) => { if (!cancelled) setMessage(error.message); });
     return () => { cancelled = true; };
@@ -165,8 +194,8 @@ export default function AdminDashboard({ username }) {
     if (uploadingImage) return;
     if (!databaseReady) return;
     if (!form.image) { setMessage("Upload a product image."); return; }
-    const description = form.description.trim() || "A considered beauty essential, made for your daily ritual.";
-    const product = { id: `${Date.now()}-${form.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`, name: form.name.trim(), category: form.category, price: Number(form.price), size: form.size.trim() || "50 ml", image: form.image, description, cardDescription: form.cardDescription.trim() || description, howToUse: form.howToUse.trim() || defaultProductUsage, caution: form.caution.trim() || defaultProductCaution, badge: "Just added" };
+    const description = form.description.trim() || "A thoughtfully selected piece for everyday style and living.";
+    const product = { id: `${Date.now()}-${form.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`, name: form.name.trim(), category: form.category, price: Number(form.price), size: form.size.trim() || "One size", image: form.image, description, cardDescription: description, howToUse: form.howToUse.trim() || defaultProductUsage, caution: form.caution.trim() || defaultProductCaution, badge: "Just added" };
     try {
       const { product: saved } = await readApiResponse(await fetch("/api/admin/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product }) }));
       setProducts((current) => [saved, ...current]);
@@ -178,18 +207,48 @@ export default function AdminDashboard({ username }) {
   async function handleImageUpload(event) {
     const file = event.currentTarget.files?.[0];
     if (!file) return;
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) { setMessage("Image file must be smaller than 5 MB."); return; }
-    if (!file.type.startsWith("image/")) { setMessage("File must be an image."); return; }
+    if (uploadingImage) return;
     setUploadingImage(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const { url } = await readApiResponse(await fetch("/api/admin/upload-image", { method: "POST", body: formData }));
+      const url = await uploadImageFile(file);
       setForm({ ...form, image: url });
       setMessage(`${file.name} uploaded.`);
     } catch (error) { setMessage(error.message); }
     finally { setUploadingImage(false); }
+  }
+
+  async function handleHomepageImageUpload(key, event) {
+    const file = event.currentTarget.files?.[0];
+    const input = event.currentTarget;
+    if (!file || homepageImageUploading) return;
+    setHomepageImageUploading(key);
+    try {
+      const url = await uploadImageFile(file);
+      setHomepageImages((current) => ({ ...current, [key]: url }));
+      setMessage(`${file.name} uploaded. Save homepage images to publish it.`);
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      input.value = "";
+      setHomepageImageUploading("");
+    }
+  }
+
+  async function saveHomepageImages() {
+    setHomepageImagesSaving(true);
+    try {
+      const { images } = await readApiResponse(await fetch("/api/admin/homepage", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ images: homepageImages }),
+      }));
+      setHomepageImages(images);
+      setMessage("Homepage images updated.");
+    } catch (error) {
+      setMessage(error.message || "Could not save homepage images.");
+    } finally {
+      setHomepageImagesSaving(false);
+    }
   }
 
   async function deleteProduct(product) {
@@ -215,13 +274,25 @@ export default function AdminDashboard({ username }) {
     } catch (error) { setMessage(error.message); }
   }
 
-  async function saveFeaturedDescription() {
-    const featuredId = products[0]?.id;
-    if (!featuredId) return;
+  async function saveProductName(product) {
+    const name = (nameDrafts[product.id] ?? product.name).trim();
+    if (!name) {
+      setMessage("Enter a product name.");
+      return;
+    }
+    if (name.length > 200) {
+      setMessage("Product names must be 200 characters or fewer.");
+      return;
+    }
     try {
-      const { product: saved } = await readApiResponse(await fetch("/api/admin/products", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: featuredId, cardDescription: featuredDescription }) }));
-      setProducts((current) => current.map((product) => product.id === featuredId ? saved : product));
-      setMessage("Featured description updated.");
+      const { product: saved } = await readApiResponse(await fetch("/api/admin/products", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: product.id, name }),
+      }));
+      setProducts((current) => current.map((item) => item.id === product.id ? saved : item));
+      setNameDrafts((current) => { const next = { ...current }; delete next[product.id]; return next; });
+      setMessage(`${saved.name} name updated.`);
     } catch (error) { setMessage(error.message); }
   }
 
@@ -265,7 +336,7 @@ export default function AdminDashboard({ username }) {
 
   async function signOut() {
     await fetch("/api/admin/session", { method: "DELETE" });
-    router.replace("/atelier");
+    router.replace("/admin");
     router.refresh();
   }
 
@@ -313,7 +384,7 @@ export default function AdminDashboard({ username }) {
   }
 
   return <main className="dashboard-shell">
-    <header className="dashboard-header"><div className="atelier-brand brand-mark" aria-label="SabbyBestCollection"><span className="brand-word">Sabby</span><span className="brand-tradings">BestCollection</span></div><div className="dashboard-header-actions"><span className="secure-status">● Signed in as {username}</span><button type="button" className="dashboard-password-toggle" onClick={togglePasswordPanel} aria-expanded={passwordPanelOpen} aria-controls="admin-password-panel"><LockResetIcon fontSize="small" aria-hidden="true" />Change password</button><button onClick={signOut}>Sign out</button></div></header>
+    <header className="dashboard-header"><div className="dashboard-brand-logo"><Image src="/sabby-best-collection-logo.png" alt="SabbyBestCollection" width={146} height={80} priority /></div><div className="dashboard-header-actions"><span className="secure-status">● Signed in as {username}</span><button type="button" className="dashboard-password-toggle" onClick={togglePasswordPanel} aria-expanded={passwordPanelOpen} aria-controls="admin-password-panel"><LockResetIcon fontSize="small" aria-hidden="true" />Change password</button><button onClick={signOut}>Sign out</button></div></header>
     {passwordPanelOpen && <section className="admin-password-panel" id="admin-password-panel" aria-labelledby="admin-password-heading">
       <div className="admin-password-panel-heading">
         <div><p className="atelier-kicker">Security</p><h2 id="admin-password-heading">Change password</h2></div>
@@ -327,20 +398,38 @@ export default function AdminDashboard({ username }) {
           </div>
           <div className="admin-password-field">
             <label htmlFor="admin-new-password">New password</label>
-            <span className="admin-password-input"><input id="admin-new-password" type={showNewPassword ? "text" : "password"} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" placeholder="e.g. a unique 12+ character phrase" minLength={12} maxLength={128} required /><button type="button" className="admin-password-visibility" onClick={() => setShowNewPassword((visible) => !visible)} aria-label={showNewPassword ? "Hide new password" : "Show new password"} aria-pressed={showNewPassword}>{showNewPassword ? <VisibilityOffIcon aria-hidden="true" /> : <VisibilityIcon aria-hidden="true" />}</button></span>
+            <span className="admin-password-input"><input id="admin-new-password" type={showNewPassword ? "text" : "password"} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" placeholder="At least 8 characters" minLength={8} maxLength={128} required /><button type="button" className="admin-password-visibility" onClick={() => setShowNewPassword((visible) => !visible)} aria-label={showNewPassword ? "Hide new password" : "Show new password"} aria-pressed={showNewPassword}>{showNewPassword ? <VisibilityOffIcon aria-hidden="true" /> : <VisibilityIcon aria-hidden="true" />}</button></span>
           </div>
           <div className="admin-password-field">
             <label htmlFor="admin-confirm-password">Confirm new password</label>
-            <span className="admin-password-input"><input id="admin-confirm-password" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" placeholder="Re-enter your new password" minLength={12} maxLength={128} required /><button type="button" className="admin-password-visibility" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? "Hide confirmation password" : "Show confirmation password"} aria-pressed={showConfirmPassword}>{showConfirmPassword ? <VisibilityOffIcon aria-hidden="true" /> : <VisibilityIcon aria-hidden="true" />}</button></span>
+            <span className="admin-password-input"><input id="admin-confirm-password" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" placeholder="Re-enter your new password" minLength={8} maxLength={128} required /><button type="button" className="admin-password-visibility" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? "Hide confirmation password" : "Show confirmation password"} aria-pressed={showConfirmPassword}>{showConfirmPassword ? <VisibilityOffIcon aria-hidden="true" /> : <VisibilityIcon aria-hidden="true" />}</button></span>
           </div>
         </div>
         {passwordFeedback && <p className={`admin-password-feedback ${passwordFeedback.type}`} role={passwordFeedback.type === "error" ? "alert" : "status"}>{passwordFeedback.message}</p>}
-        <div className="admin-password-actions"><p>Use 12 to 128 characters. Other admin sessions will be signed out.</p><button type="submit" disabled={passwordSaving}><LockResetIcon fontSize="small" aria-hidden="true" />{passwordSaving ? "Updating…" : "Update password"}</button></div>
+        <div className="admin-password-actions"><p>Use 8 to 128 characters. Other admin sessions will be signed out.</p><button type="submit" disabled={passwordSaving}><LockResetIcon fontSize="small" aria-hidden="true" />{passwordSaving ? "Updating…" : "Update password"}</button></div>
       </form>
     </section>}
     <section className="dashboard-heading"><p className="atelier-kicker">Store administration</p><h1>{greeting}</h1><p>Keep your collection polished, current, and ready to shop.</p></section>
     {message && !databaseReady && <p className="database-warning" role="alert">{message} Check DATABASE_URL in your environment and run `npx prisma db push` if the schema has not been applied.</p>}
-    <section className="orders-panel" aria-labelledby="orders-heading">
+    <section className="dashboard-overview-grid" aria-label="Storefront images and customer activity">
+      <details className="homepage-images-panel">
+        <summary className="homepage-images-summary" aria-labelledby="homepage-images-heading">
+          <span><span className="atelier-kicker">Storefront</span><strong id="homepage-images-heading">Home page images</strong></span>
+          <span className="homepage-images-summary-note">Manage hero photos</span>
+        </summary>
+        <div className="homepage-images-content">
+          <p className="homepage-images-description">Upload images for the three photos in the home-page hero. Changes appear on the storefront after you save.</p>
+          <div className="homepage-image-grid">{homepageImageFields.map(({ key, label, description }) => (
+            <div className="homepage-image-card" key={key}>
+              <div className="homepage-image-preview" role="img" aria-label={`${label} preview`} style={{ backgroundImage: `url("${homepageImages[key]}")` }} />
+              <div className="homepage-image-details"><strong>{label}</strong><span>{description}</span></div>
+              <label className="homepage-image-upload">Choose image<input type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/gif" onChange={(event) => handleHomepageImageUpload(key, event)} disabled={!databaseReady || Boolean(homepageImageUploading)} /></label>
+            </div>
+          ))}</div>
+          <button className="homepage-images-save" type="button" onClick={saveHomepageImages} disabled={!databaseReady || homepageImagesSaving || Boolean(homepageImageUploading)}>{homepageImagesSaving ? "Saving…" : "Save home page images"}</button>
+        </div>
+      </details>
+      <section className="orders-panel" aria-labelledby="orders-heading">
       <div className="orders-panel-heading">
         <div><p className="atelier-kicker">Customer activity</p><h2 id="orders-heading">Orders <span className="orders-count">{orders.length}</span></h2><p>New orders are checked every 30 seconds while the dashboard is open.</p></div>
         <div className="orders-toolbar">
@@ -363,28 +452,42 @@ export default function AdminDashboard({ username }) {
           <div className="admin-order-bottom"><div><span>Delivery address & city / town</span><p>{order.shipping_address}</p><small>Payment: Mobile Money · {money.format(Number(order.total))}</small></div><label>Status<select aria-label={`Update status for order ${order.id.slice(0, 8)}`} value={order.status} onChange={(event) => updateOrderStatus(order, event.target.value)}>{orderStatuses.map((status) => <option key={status} value={status}>{status.replaceAll("_", " ")}</option>)}</select></label></div>
         </article>
       ))}</div>}
+      </section>
     </section>
     <section className="dashboard-grid">
       <form className="catalog-form" onSubmit={addProduct}>
-        <div className="panel-heading"><div><p className="atelier-kicker">New listing</p><h2>Add a product</h2></div></div>
-        <label>Product name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="e.g. Dew Ritual Essence" /></label>
-        <div className="field-row"><label>Category<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })}>{productCategories.map((category) => <option key={category}>{category}</option>)}</select></label><label>Price (GHS)<input required min="0.01" step="0.01" type="number" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} placeholder="36.00" /></label></div>
-        <div className="field-row"><label>Size<input value={form.size} onChange={(event) => setForm({ ...form, size: event.target.value })} placeholder="50 ml" /></label><label>Product Image<input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} />{form.image && <span className="upload-status" style={{ fontSize: "0.85em", color: "#666", marginTop: "0.25em", display: "block" }}>✓ Image ready</span>}</label></div>
-        <label>Description<textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="A short, inviting description." /></label>
-        <label>Home card description<textarea value={form.cardDescription} onChange={(event) => setForm({ ...form, cardDescription: event.target.value })} placeholder="Short copy displayed over the featured product." /></label>
-        <label>How to use<textarea value={form.howToUse} onChange={(event) => setForm({ ...form, howToUse: event.target.value })} rows={3} /></label>
-        <label>Caution<textarea value={form.caution} onChange={(event) => setForm({ ...form, caution: event.target.value })} rows={3} /></label>
-        <button className="publish-button" type="submit" disabled={!databaseReady}>Publish product <span>→</span></button>
+        <details className="listing-dropdown">
+          <summary className="listing-dropdown-summary">
+            <span><span className="atelier-kicker">New listing</span><strong>Add a product</strong></span>
+            <span className="listing-dropdown-note">Create a catalogue listing</span>
+          </summary>
+          <div className="listing-dropdown-content">
+            <label>Product name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="e.g. Dew Ritual Essence" /></label>
+            <div className="field-row"><label>Category<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })}>{productCategories.map((category) => <option key={category}>{category}</option>)}</select></label><label>Price (GHS)<input required min="0.01" step="0.01" type="number" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} placeholder="36.00" /></label></div>
+            <div className="field-row"><label>Size<input value={form.size} onChange={(event) => setForm({ ...form, size: event.target.value })} placeholder="One size" /></label><label>Product Image<input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} />{form.image && <span className="upload-status" style={{ fontSize: "0.85em", color: "#666", marginTop: "0.25em", display: "block" }}>✓ Image ready</span>}</label></div>
+            <label>Description<textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="A short, inviting description." /></label>
+            <label>How to use<textarea value={form.howToUse} onChange={(event) => setForm({ ...form, howToUse: event.target.value })} rows={3} /></label>
+            <label>Caution<textarea value={form.caution} onChange={(event) => setForm({ ...form, caution: event.target.value })} rows={3} /></label>
+            <button className="publish-button" type="submit" disabled={!databaseReady}>Publish product <span>→</span></button>
+          </div>
+        </details>
       </form>
       <section className="catalog-panel">
         <div className="panel-heading"><div><p className="atelier-kicker">Live catalogue</p><h2>Products</h2></div><span className="product-count">{databaseReady ? `${products.length} live` : "Database unavailable"}</span></div>
-        {products[0] && <div className="featured-copy-editor"><label htmlFor="featured-description">Home card description for {products[0].name}</label><textarea id="featured-description" value={featuredDescription} onChange={(event) => setFeaturedDescription(event.target.value)} /><button type="button" onClick={saveFeaturedDescription}>Save description</button></div>}
-        <div className="catalog-list">{products.map((product) => <article key={product.id} className="catalog-item">
-          <span className="catalog-image" style={{ backgroundImage: `url(${product.image})` }} />
-          <div className="catalog-item-details"><h3>{product.name}</h3><p>{product.category} <i>·</i> {product.size}</p></div>
-          <div className="catalog-price-editor"><label htmlFor={`price-${product.id}`}>Price (GHS)</label><div><input id={`price-${product.id}`} aria-label={`Price for ${product.name} in Ghana cedis`} type="number" min="0.01" step="0.01" required value={priceDrafts[product.id] ?? String(product.price)} onChange={(event) => setPriceDrafts((current) => ({ ...current, [product.id]: event.target.value }))} /><button type="button" onClick={() => savePrice(product)}>Save price</button></div></div>
-          <button className="catalog-remove-button" type="button" onClick={() => deleteProduct(product)} aria-label={`Remove ${product.name}`}>Remove</button>
-        </article>)}</div>
+        <details className="catalog-dropdown">
+          <summary><span>Browse and manage products</span><span className="catalog-dropdown-count">{products.length}</span></summary>
+          <div className="catalog-list">{products.map((product) => <article key={product.id} className="catalog-item">
+            <div className="catalog-item-overview">
+              <span className="catalog-image" style={{ backgroundImage: `url(${product.image})` }} />
+              <div className="catalog-item-details"><h3>{product.name}</h3><p>{product.category} <i>·</i> {product.size}</p></div>
+              <button className="catalog-remove-button" type="button" onClick={() => deleteProduct(product)} aria-label={`Remove ${product.name}`}>Remove</button>
+            </div>
+            <div className="catalog-editors">
+              <div className="catalog-name-editor"><label htmlFor={`name-${product.id}`}>Product name</label><div><input id={`name-${product.id}`} aria-label={`Name for ${product.name}`} maxLength={200} value={nameDrafts[product.id] ?? product.name} onChange={(event) => setNameDrafts((current) => ({ ...current, [product.id]: event.target.value }))} /><button type="button" onClick={() => saveProductName(product)}>Save name</button></div></div>
+              <div className="catalog-price-editor"><label htmlFor={`price-${product.id}`}>Price (GHS)</label><div><input id={`price-${product.id}`} aria-label={`Price for ${product.name} in Ghana cedis`} type="number" min="0.01" step="0.01" required value={priceDrafts[product.id] ?? String(product.price)} onChange={(event) => setPriceDrafts((current) => ({ ...current, [product.id]: event.target.value }))} /><button type="button" onClick={() => savePrice(product)}>Save price</button></div></div>
+            </div>
+          </article>)}</div>
+        </details>
       </section>
     </section>
     {message && databaseReady && <div className="admin-toast" role="status">✓ {message}</div>}

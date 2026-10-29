@@ -26,8 +26,8 @@ export async function POST(request) {
   if (typeof currentPassword !== "string" || typeof newPassword !== "string") {
     return NextResponse.json({ error: "Enter your current and new passwords." }, { status: 400 });
   }
-  if (newPassword.length < 12 || newPassword.length > 128) {
-    return NextResponse.json({ error: "Use a new password between 12 and 128 characters." }, { status: 400 });
+  if (newPassword.length < 8 || newPassword.length > 128) {
+    return NextResponse.json({ error: "Use a new password between 8 and 128 characters." }, { status: 400 });
   }
   if (currentPassword === newPassword) {
     return NextResponse.json({ error: "Choose a password you are not already using." }, { status: 400 });

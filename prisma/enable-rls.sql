@@ -4,4 +4,5 @@ ALTER TABLE public.customer_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_verifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.product_images ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.homepage_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_credentials ENABLE ROW LEVEL SECURITY;

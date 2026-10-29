@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "SabbyBestCollection — Skincare, considered",
-  description: "A thoughtful collection of high-performance beauty essentials from SabbyBestCollection.",
+  title: "SabbyBestCollection — Style and home, considered",
+  description: "A thoughtful collection of fashion, home, and everyday essentials from SabbyBestCollection.",
 };
 
 export default function RootLayout({ children }) {
