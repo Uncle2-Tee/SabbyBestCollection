@@ -38,6 +38,11 @@ export async function GET() {
     return NextResponse.json({ products: products.map(productFromDatabaseRow) });
   } catch (error) {
     console.error("Could not read the product catalogue:", error);
+    const code = error && typeof error === "object" && "code" in error ? error.code : undefined;
+    if (process.env.NODE_ENV === "development" && transientDatabaseErrorCodes.has(code)) {
+      console.warn("Using the local starter catalogue while PostgreSQL is unavailable.");
+      return NextResponse.json({ products: initialProducts });
+    }
     return NextResponse.json({ error: "Could not load products from the PostgreSQL database." }, { status: 503 });
   }
 }

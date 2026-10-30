@@ -1470,7 +1470,7 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
 .page-view .header-actions .icon-button:hover,
 .page-view .bag-button:hover { color:#111; background:var(--page-accent-soft); }
 .page-view .bag-button b { background:var(--page-accent); color:#111; }
-.page-view .mobile-bottom-nav { border-color:var(--line); background:rgba(255,255,255,.97); }
+.page-view .mobile-bottom-nav { border-color:color-mix(in srgb,var(--page-accent) 26%,white); background:rgba(255,255,255,.97); }
 .page-view .mobile-bottom-nav button.active,
 .page-view .mobile-bottom-nav button.active svg { background:var(--page-accent-soft); color:#b84d12; }
 .page-view .catalog-search-popover { border-color:rgba(244,119,50,.28); }
