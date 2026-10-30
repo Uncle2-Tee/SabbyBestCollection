@@ -13,41 +13,42 @@ export async function POST(request) {
     return NextResponse.json({ error: "Invalid sign-up details." }, { status: 400 });
   }
 
-  const contact = normalizeCustomerIdentifier(body?.identifier);
+  const username = typeof body?.username === "string" ? body.username.trim().toLowerCase() : "";
+  const contact = normalizeCustomerIdentifier(body?.phone);
   const password = typeof body?.password === "string" ? body.password : "";
-  if (!contact || password.length < 8 || password.length > 128) {
-    return NextResponse.json({ error: "Enter a valid email or phone number and a password between 8 and 128 characters." }, { status: 400 });
+  if (!/^[a-z0-9][a-z0-9._-]{2,29}$/.test(username) || !contact || contact.type !== "phone" || password.length < 8 || password.length > 128) {
+    return NextResponse.json({ error: "Enter a username, valid phone number, and password between 8 and 128 characters." }, { status: 400 });
   }
 
   try {
     const passwordHash = await hashPassword(password);
     const profile = await prisma.$transaction(async (transaction) => {
-      const challenge = await transaction.customerVerification.findUnique({ where: { identifier: contact.identifier } });
-      if (!challenge || !challenge.verifiedAt || challenge.expiresAt <= new Date()) return null;
-
       const existing = await transaction.customerProfile.findUnique({
-        where: contact.type === "email" ? { email: contact.email } : { phone: contact.phone },
+        where: { phone: contact.phone },
         select: { id: true },
       });
-      if (existing) return "existing";
+      const existingUsername = await transaction.customerProfile.findUnique({
+        where: { username },
+        select: { id: true },
+      });
+      if (existing || existingUsername) return "existing";
 
       const created = await transaction.customerProfile.create({
-        data: { email: contact.email, phone: contact.phone, passwordHash },
+        data: { username, phone: contact.phone, passwordHash },
       });
-      await transaction.customerVerification.delete({ where: { id: challenge.id } });
       return created;
     });
 
     if (profile === "existing") {
-      return NextResponse.json({ error: "An account with this contact already exists. Log in instead.", existingAccount: true }, { status: 409 });
+      return NextResponse.json({ error: "That username or phone number is already in use. Log in instead.", existingAccount: true }, { status: 409 });
     }
     if (!profile) {
-      return NextResponse.json({ error: "Verify your email or phone number before creating an account." }, { status: 400 });
+      return NextResponse.json({ error: "Could not create your account." }, { status: 400 });
     }
-    return NextResponse.json({ message: "Account created. Enter your password to log in." }, { status: 201 });
+    return NextResponse.json({ message: "Account created. Log in with your username or phone number." }, { status: 201 });
   } catch (error) {
     if (error.code === "P2002") {
-      return NextResponse.json({ error: "An account with this contact already exists. Log in instead.", existingAccount: true }, { status: 409 });
+      return NextResponse.json({ error: "That username or phone number is already in use. Log in instead.", existingAccount: true }, { status: 409 });
     }
     console.error("Could not create customer account:", error);
     return NextResponse.json({ error: "Could not create your account. Please try again." }, { status: 500 });

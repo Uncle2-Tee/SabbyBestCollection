@@ -18,6 +18,7 @@ import LogoutIcon from "@mui/icons-material/LogoutOutlined";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import { requestCustomerPasswordReset, resetCustomerPassword, signInCustomer, signOutCustomer, signUpCustomer, startCustomerVerification, verifyCustomerContact } from "../../lib/customer-auth-client";
 import { subscribeToCustomerOrderUpdates } from "../../lib/customer-order-updates";
+import { whatsappHref } from "../../lib/contact";
 
 const notificationPreferenceKey = (userId) => `sabbybestcollection:order-notifications:${userId}`;
 
@@ -51,7 +52,7 @@ function formatDate(value) {
 
 export default function CustomerAccount({ session, onSignInSuccess, onAccountUpdated, activeSection, onSelectSection, onBackToSections, mobileSectionOpen, wishlistProducts, onAddToCart, onRemoveFromWishlist, onOpenCart, cartCount, refreshKey }) {
   const [authMode, setAuthMode] = useState("signin");
-  const [form, setForm] = useState({ identifier: "", password: "", confirmPassword: "", verificationCode: "" });
+  const [form, setForm] = useState({ identifier: "", username: "", phone: "", password: "", confirmPassword: "", verificationCode: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordOnlyLogin, setPasswordOnlyLogin] = useState(false);
@@ -228,10 +229,14 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
       setMessage("Your passwords do not match. Please check and try again.");
       return;
     }
-    if (["signup", "signin", "recovery", "reset"].includes(currentAuthMode) && !form.identifier.trim()) {
+    if (currentAuthMode === "signup" && (!form.username.trim() || !form.phone.trim())) {
+      setMessage("Enter a username and phone number to continue.");
+      return;
+    }
+    if (["signin", "recovery", "reset"].includes(currentAuthMode) && !form.identifier.trim()) {
       setMessage(currentAuthMode === "recovery" || currentAuthMode === "reset"
         ? "Enter the email address for your account."
-        : "Enter your email address or phone number to continue.");
+      : "Enter your username or phone number to continue.");
       return;
     }
     setBusy(true);
@@ -245,12 +250,11 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
         setForm((current) => ({ ...current, verificationCode: "", password: "", confirmPassword: "" }));
         setMessage(result.message);
       } else if (currentAuthMode === "signup") {
-        const result = await startCustomerVerification(form.identifier.trim());
-        setVerificationDestination(result.destination);
-        setVerificationResendSeconds(60);
-        setAuthMode("verify");
-        setForm((current) => ({ ...current, verificationCode: "", password: "", confirmPassword: "" }));
-        setMessage(`We sent a verification code to ${result.destination}.`);
+        await signUpCustomer({ username: form.username.trim(), phone: form.phone.trim(), password: form.password });
+        setAuthMode("signin");
+        setPasswordOnlyLogin(false);
+        setForm((current) => ({ ...current, identifier: form.username.trim(), username: "", phone: "", password: "" }));
+        setMessage("Account created. Log in with your username or phone number.");
       } else if (currentAuthMode === "verify") {
         await verifyCustomerContact(form.identifier.trim(), form.verificationCode.trim());
         setAuthMode("set-password");
@@ -258,11 +262,6 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
         setForm((current) => ({ ...current, verificationCode: "", password: "", confirmPassword: "" }));
         setMessage("Contact verified. Create a password for your account.");
       } else if (currentAuthMode === "set-password") {
-        await signUpCustomer({ identifier: form.identifier.trim(), password: form.password });
-        setAuthMode("signin");
-        setPasswordOnlyLogin(true);
-        setForm((current) => ({ ...current, password: "", confirmPassword: "" }));
-        setMessage("Account created. Enter your password to log in.");
       } else if (currentAuthMode === "reset") {
         await resetCustomerPassword({
           email: form.identifier.trim(),
@@ -286,25 +285,14 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
           identifier: form.identifier.trim(),
           password: form.password,
         });
-        if (result.requiresVerification) {
-          setVerificationDestination(result.destination);
-          setVerificationResendSeconds(result.retryAfterSeconds);
-          setAuthMode("login-verification");
-          setForm((current) => ({ ...current, verificationCode: "" }));
-          setMessage(result.sent
-            ? `We sent a one-time code to ${result.destination} to verify this login.`
-            : `A code was recently sent to ${result.destination}. Enter it below or wait before requesting another.`);
-        } else {
-          onSignInSuccess(result.session);
-          setMessage("");
-        }
+        onSignInSuccess(result.session);
+        setMessage("");
       }
     } catch (error) {
       if (currentAuthMode === "signup" && error.existingAccount) {
         setAuthMode("signin");
-        setPasswordOnlyLogin(true);
-        setForm((current) => ({ ...current, password: "", confirmPassword: "" }));
-        setMessage("An account with this contact already exists. Enter your password to log in.");
+        setForm((current) => ({ ...current, identifier: form.username.trim(), username: "", phone: "", password: "" }));
+        setMessage("That username or phone number is already in use. Log in instead.");
         return;
       }
       setMessage(error.message || "Could not complete sign-in.");
@@ -440,7 +428,7 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
         </div>
         <h1>{isSigningUp ? "Create your account" : isVerifying ? "Verify your contact" : isLoginVerification ? "Verify your phone" : isSettingPassword ? "Set your password" : isRecoveringPassword ? "Reset your password" : isResettingPassword ? "Choose a new password" : "Welcome Back"}</h1>
         <p className="customer-auth-intro">{isSigningUp
-          ? "Enter your email address or phone number to get started."
+          ? "Choose a username, add your phone number, and create a password."
           : isVerifying
             ? `Enter the six-digit code sent to ${verificationDestination}.`
             : isLoginVerification
@@ -451,13 +439,14 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
                 ? "Enter the email address linked to your account and we’ll send you a one-time reset code."
                 : isResettingPassword
                   ? `Enter the six-digit code sent to ${verificationDestination}, then choose a new password.`
-              : "Log in to continue to your SabbyBestCollection account."}</p>
+              : "Log in with your username or phone number and password."}</p>
         <form onSubmit={submitAuth} aria-busy={busy}>
-          {(isSigningUp || (isSigningIn && !isPasswordOnlyLogin) || isRecoveringPassword) && <label htmlFor="customer-identifier">{isRecoveringPassword ? "Email address" : "Email or phone number"}<input id="customer-identifier" name="identifier" type={isRecoveringPassword ? "email" : "text"} autoComplete={isRecoveringPassword ? "email" : "username"} autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder={isRecoveringPassword ? "you@example.com" : "e.g. elliot@example.com or +233 24 123 4567"} required maxLength={254} value={form.identifier} onChange={(event) => setForm({ ...form, identifier: event.target.value })} /></label>}
+          {isSigningUp && <><label htmlFor="customer-username">Username<input id="customer-username" name="username" type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="e.g. elliot_gh" required maxLength={30} value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} /></label><label htmlFor="customer-phone">Phone number<input id="customer-phone" name="phone" type="tel" autoComplete="tel" placeholder="e.g. +233 24 123 4567" required maxLength={30} value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></label></>}
+          {(isSigningIn && !isPasswordOnlyLogin || isRecoveringPassword) && <label htmlFor="customer-identifier">{isRecoveringPassword ? "Email address" : "Username or phone number"}<input id="customer-identifier" name="identifier" type={isRecoveringPassword ? "email" : "text"} autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder={isRecoveringPassword ? "you@example.com" : "e.g. elliot_gh or +233 24 123 4567"} required maxLength={254} value={form.identifier} onChange={(event) => setForm({ ...form, identifier: event.target.value })} /></label>}
           {(isPasswordOnlyLogin || isResettingPassword) && <div className="customer-auth-identifier"><span>{form.identifier}</span><button className="account-text-action" type="button" disabled={busy} onClick={() => { setPasswordOnlyLogin(false); setVerificationResendSeconds(0); setAuthMode(isResettingPassword ? "recovery" : "signin"); setMessage(""); setForm((current) => ({ ...current, verificationCode: "", password: "", confirmPassword: "" })); }}>Change</button></div>}
           {isLoginVerification && <div className="customer-auth-identifier"><span>Phone number · {verificationDestination}</span><button className="account-text-action" type="button" disabled={busy} onClick={() => { setAuthMode("signin"); setPasswordOnlyLogin(false); setVerificationResendSeconds(0); setMessage(""); setForm((current) => ({ ...current, password: "", verificationCode: "" })); }}>Change</button></div>}
           {(isVerifying || isLoginVerification || isResettingPassword) && <label htmlFor="customer-verification-code">Verification code<input id="customer-verification-code" name="verificationCode" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" placeholder="6-digit code" required maxLength={6} value={form.verificationCode} onChange={(event) => setForm({ ...form, verificationCode: event.target.value.replace(/\D/g, "").slice(0, 6) })} /></label>}
-          {(isSigningIn || isSettingPassword || isResettingPassword) && <label htmlFor="customer-password">{isResettingPassword ? "New password" : "Password"}
+          {(isSigningUp || isSigningIn || isSettingPassword || isResettingPassword) && <label htmlFor="customer-password">{isResettingPassword ? "New password" : "Password"}
             <span className="customer-password-field">
               <input id="customer-password" name="password" type={showPassword ? "text" : "password"} autoComplete={isSettingPassword || isResettingPassword ? "new-password" : "current-password"} placeholder={isSettingPassword || isResettingPassword ? "Create a password" : "Password"} minLength={8} maxLength={128} required value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
               <button type="button" className="customer-password-toggle" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword}>{showPassword ? <VisibilityOffIcon fontSize="small" aria-hidden="true" /> : <VisibilityIcon fontSize="small" aria-hidden="true" />}</button>
@@ -474,7 +463,6 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
           {isVerifying && <button className="customer-forgot-link" type="button" onClick={() => { setAuthMode("signup"); setMessage(""); setForm((current) => ({ ...current, verificationCode: "" })); }}>Change email or phone</button>}
           {(isVerifying || isLoginVerification || isResettingPassword) && <button className="customer-forgot-link" type="button" onClick={resendVerificationCode} disabled={busy || verificationResendSeconds > 0}>{verificationResendSeconds > 0 ? `Resend code in ${Math.floor(verificationResendSeconds / 60)}:${String(verificationResendSeconds % 60).padStart(2, "0")}` : "Resend code"}</button>}
           {(isSettingPassword || isResettingPassword) && <p className="customer-password-hint">Use at least 8 characters.</p>}
-          {isSigningIn && <button className="customer-forgot-link" type="button" onClick={() => { setAuthMode("recovery"); setMessage(""); setForm((current) => ({ ...current, password: "", confirmPassword: "" })); }}>Forgot password?</button>}
           {message && <p className="customer-account-notice" role="status" aria-live="polite">{message}</p>}
           <button className="primary-button wide" type="submit" disabled={busy}>{busy ? "Please wait…" : isRecoveringPassword ? "Send reset code" : isResettingPassword ? "Reset password" : isSigningUp ? "Continue" : isVerifying ? "Verify code" : isLoginVerification ? "Verify & Log In" : isSettingPassword ? "Create account" : "Log In"}</button>
         </form>
@@ -489,7 +477,7 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
     </section>;
   }
 
-  const accountIdentifier = session.user.email || session.user.phone;
+  const accountIdentifier = session.user.username || session.user.phone;
   const fullName = session.user.user_metadata?.full_name || accountIdentifier || "Customer";
   const profileChangesPending = accountSettings.fullName.trim() !== savedProfile.fullName
     || accountSettings.email.trim().toLowerCase() !== (savedProfile.email || "");
@@ -534,10 +522,10 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
           <div className="account-section-heading wishlist-heading"><div><p className="eyebrow">Saved for later</p><h2>My Wishlist <span aria-hidden="true">♥</span></h2></div><span>{wishlistProducts.length} items</span></div>
           {wishlistProducts.length ? <div className="wishlist-grid">{wishlistProducts.map((product) => <article className="wishlist-card" key={product.id}><div className="wishlist-card-image" style={{ backgroundImage: `url(${product.image})` }} role="img" aria-label={product.name}><button className="wishlist-remove" onClick={() => onRemoveFromWishlist(product)} aria-label={`Remove ${product.name} from wishlist`}>×</button>{product.badge && <span className="product-badge">{product.badge}</span>}</div><div className="wishlist-card-info"><p className="eyebrow">{product.category}</p><h3>{product.name}</h3><p className="wishlist-card-price">{new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS" }).format(product.price)}</p><button className="add-to-cart-button" onClick={() => onAddToCart(product)}>Add to cart</button></div></article>)}</div> : <div className="wishlist-empty"><h3>Your wishlist is empty</h3><p>Save products you love and find them here later.</p></div>}
         </section>}
-        {activeSection === "profile" && <div className="account-empty"><p className="eyebrow">Your details</p><h2>My Profile</h2><p><strong>Name</strong><br />{fullName}</p>{session.user.email && <p><strong>Email</strong><br />{session.user.email}</p>}{session.user.phone && <p><strong>Verified phone</strong><br />{session.user.phone}</p>}<p>Your account details are securely managed in the store database.</p></div>}
+        {activeSection === "profile" && <div className="account-empty"><p className="eyebrow">Your details</p><h2>My Profile</h2><p><strong>Name</strong><br />{fullName}</p>{session.user.username && <p><strong>Username</strong><br />{session.user.username}</p>}{session.user.phone && <p><strong>Phone number</strong><br />{session.user.phone}</p>}<p>Your account details are securely managed in the store database.</p></div>}
         {activeSection === "addresses" && <div className="account-empty"><p className="eyebrow">Delivery details</p><h2>Delivery Addresses</h2><p>No saved delivery addresses yet. Add your delivery address during checkout and it will be included with your order.</p></div>}
         {activeSection === "payments" && <div className="account-empty"><p className="eyebrow">Secure payments</p><h2>Payment Methods</h2><p>Payment is currently handled through Mobile Money at checkout. Payment card details are not stored in your account.</p></div>}
-        {activeSection === "returns" && <div className="account-empty account-help-card"><p className="eyebrow">Order support</p><h2>Returns &amp; Refunds</h2><p>For help with a return or refund, contact our support team with your order number.</p><div className="account-help-actions"><a className="account-help-whatsapp" href="https://wa.me/233240958153" target="_blank" rel="noreferrer"><WhatsAppIcon aria-hidden="true" /> WhatsApp</a></div></div>}
+        {activeSection === "returns" && <div className="account-empty account-help-card"><p className="eyebrow">Order support</p><h2>Returns &amp; Refunds</h2><p>For help with a return or refund, contact our support team with your order number.</p><div className="account-help-actions">{whatsappHref ? <a className="account-help-whatsapp" href={whatsappHref} target="_blank" rel="noreferrer"><WhatsAppIcon aria-hidden="true" /> WhatsApp</a> : <span className="account-help-whatsapp contact-unavailable"><WhatsAppIcon aria-hidden="true" /> WhatsApp</span>}</div></div>}
         {activeSection === "notifications" && <section className="customer-account-tools">
           <div className="account-section-heading"><div><p className="eyebrow">Stay in the loop</p><h2>Notifications</h2></div></div>
           <article className="account-tool-card">
@@ -581,7 +569,7 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
           </form>
           <p className="account-tool-muted account-settings-signout">Sign out of this account from the account header whenever you’re using a shared device.</p>
         </section>}
-        {activeSection === "support" && <div className="account-empty account-help-card"><p className="eyebrow">We’re here to help</p><h2>Help &amp; Support</h2><p>Our team is ready to help with your orders and any questions.</p><div className="account-help-actions"><a className="account-help-whatsapp" href="https://wa.me/233240958153" target="_blank" rel="noreferrer"><WhatsAppIcon aria-hidden="true" /> WhatsApp</a></div></div>}
+        {activeSection === "support" && <div className="account-empty account-help-card"><p className="eyebrow">We’re here to help</p><h2>Help &amp; Support</h2><p>Our team is ready to help with your orders and any questions.</p><div className="account-help-actions">{whatsappHref ? <a className="account-help-whatsapp" href={whatsappHref} target="_blank" rel="noreferrer"><WhatsAppIcon aria-hidden="true" /> WhatsApp</a> : <span className="account-help-whatsapp contact-unavailable"><WhatsAppIcon aria-hidden="true" /> WhatsApp</span>}</div></div>}
         {message && <p className="customer-account-notice" role="status">{message}</p>}
       </section>
     </div>

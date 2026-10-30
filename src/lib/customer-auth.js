@@ -17,6 +17,7 @@ export const customerSessionCookieOptions = {
 export function publicCustomer(profile) {
   return {
     id: profile.id,
+    username: profile.username,
     email: profile.email,
     phone: profile.phone,
     user_metadata: { full_name: profile.fullName },

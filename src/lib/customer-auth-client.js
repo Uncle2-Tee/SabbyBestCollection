@@ -36,10 +36,10 @@ export async function verifyCustomerContact(identifier, code) {
   });
 }
 
-export async function signUpCustomer({ identifier, password }) {
+export async function signUpCustomer({ username, phone, password }) {
   return request("/api/auth/signup", {
     method: "POST",
-    body: { identifier, password },
+    body: { username, phone, password },
   });
 }
 
