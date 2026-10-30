@@ -1181,15 +1181,17 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
   .mobile-bottom-nav button {
     gap:3px;
     border-radius:999px;
+    background:transparent;
     color:#756d71;
     font-size:10px;
     transition:background .18s ease,color .18s ease;
   }
   .mobile-bottom-nav button.active {
-    background:#f9e8ed;
+    background:transparent;
     color:#a83361;
     font-weight:600;
   }
+  .mobile-bottom-nav button svg { background:transparent; }
   .mobile-bottom-nav button.active svg { color:#a83361; }
 }
 
