@@ -17,9 +17,9 @@ const money = new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS
 const emptyForm = { name: "", category: "Dresses", price: "", size: "", image: "", description: "", howToUse: defaultProductUsage, caution: defaultProductCaution };
 const orderStatuses = ["awaiting_payment", "payment_review", "processing", "shipped", "delivered", "cancelled"];
 const homepageImageFields = [
-  { key: "heroEditorial", label: "Main hero image", description: "The large image in the home-page hero." },
-  { key: "heroLookbook", label: "Lookbook image", description: "The smaller overlapping image on the left." },
-  { key: "heroDetail", label: "Detail image", description: "The smaller overlapping image on the right." },
+  { key: "heroEditorial", label: "Hero background", description: "Fills the home-page hero behind the text and supporting images." },
+  { key: "heroLookbook", label: "Lookbook overlay", description: "The tilted supporting image positioned on the left." },
+  { key: "heroDetail", label: "Detail overlay", description: "The tilted supporting image positioned on the right." },
 ];
 
 function timeBasedGreeting() {
@@ -418,7 +418,7 @@ export default function AdminDashboard({ username }) {
           <span className="homepage-images-summary-note">Manage hero photos</span>
         </summary>
         <div className="homepage-images-content">
-          <p className="homepage-images-description">Upload images for the three photos in the home-page hero. Changes appear on the storefront after you save.</p>
+          <p className="homepage-images-description">Choose the full-bleed hero background and two supporting overlay images. Changes appear on the storefront after you save.</p>
           <div className="homepage-image-grid">{homepageImageFields.map(({ key, label, description }) => (
             <div className="homepage-image-card" key={key}>
               <div className="homepage-image-preview" role="img" aria-label={`${label} preview`} style={{ backgroundImage: `url("${homepageImages[key]}")` }} />
