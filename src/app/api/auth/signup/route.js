@@ -8,8 +8,12 @@ export const runtime = "nodejs";
 const transientDatabaseErrorCodes = new Set(["P1001", "P1002", "P1008", "P1017", "P2024", "P2028"]);
 const signupRetryDelays = [500, 1000, 2000, 4000];
 
+function getDatabaseErrorCode(error) {
+  return error && typeof error === "object" && "code" in error ? error.code : undefined;
+}
+
 function isTransientDatabaseError(error) {
-  const code = error && typeof error === "object" && "code" in error ? error.code : undefined;
+  const code = getDatabaseErrorCode(error);
   return transientDatabaseErrorCodes.has(code)
     || (error?.name === "PrismaClientInitializationError" && /Can't reach database server/i.test(error.message || ""));
 }
@@ -50,6 +54,10 @@ export async function POST(request) {
     return NextResponse.json({ error: "Enter a username, valid phone number, and password between 8 and 128 characters." }, { status: 400 });
   }
 
+  if (!process.env.DATABASE_URL) {
+    return NextResponse.json({ error: "Account creation is unavailable because the production database is not configured." }, { status: 503 });
+  }
+
   try {
     const passwordHash = await hashPassword(password);
     const result = await createCustomerProfile({ username, phone: contact.phone, passwordHash });
@@ -58,12 +66,16 @@ export async function POST(request) {
     }
     return NextResponse.json({ message: "Account created. Log in with your username or phone number." }, { status: 201 });
   } catch (error) {
-    if (error.code === "P2002") {
+    const errorCode = getDatabaseErrorCode(error);
+    if (errorCode === "P2002") {
       return NextResponse.json({ error: "That username or phone number is already in use. Log in instead.", existingAccount: true }, { status: 409 });
     }
     console.error("Could not create customer account:", error);
     if (isTransientDatabaseError(error)) {
       return NextResponse.json({ error: "Account creation is temporarily unavailable. Please try again in a moment." }, { status: 503 });
+    }
+    if (errorCode === "P2021" || errorCode === "P2022") {
+      return NextResponse.json({ error: "Account creation is unavailable because the production database schema is out of date. Apply the latest Prisma schema and redeploy." }, { status: 503 });
     }
     return NextResponse.json({ error: "Could not create your account. Please try again." }, { status: 500 });
   }
