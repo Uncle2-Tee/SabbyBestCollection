@@ -384,7 +384,7 @@ export default function AdminDashboard({ username }) {
   }
 
   return <main className="dashboard-shell">
-    <header className="dashboard-header"><div className="dashboard-brand-logo"><Image src="/sabby-best-collection-logo.png" alt="SabbyBestCollection" width={146} height={80} priority /></div><div className="dashboard-header-actions"><span className="secure-status">● Signed in as {username}</span><button type="button" className="dashboard-password-toggle" onClick={togglePasswordPanel} aria-expanded={passwordPanelOpen} aria-controls="admin-password-panel"><LockResetIcon fontSize="small" aria-hidden="true" />Change password</button><button onClick={signOut}>Sign out</button></div></header>
+    <header className="dashboard-header"><div className="dashboard-brand-logo"><Image src="/sabby-best-collection-logo-transparent.png" alt="SabbyBestCollection" width={146} height={80} priority /></div><div className="dashboard-header-actions"><span className="secure-status">● Signed in as {username}</span><button type="button" className="dashboard-password-toggle" onClick={togglePasswordPanel} aria-expanded={passwordPanelOpen} aria-controls="admin-password-panel"><LockResetIcon fontSize="small" aria-hidden="true" />Change password</button><button onClick={signOut}>Sign out</button></div></header>
     {passwordPanelOpen && <section className="admin-password-panel" id="admin-password-panel" aria-labelledby="admin-password-heading">
       <div className="admin-password-panel-heading">
         <div><p className="atelier-kicker">Security</p><h2 id="admin-password-heading">Change password</h2></div>

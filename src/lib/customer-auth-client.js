@@ -43,6 +43,20 @@ export async function signUpCustomer({ identifier, password }) {
   });
 }
 
+export async function requestCustomerPasswordReset(email) {
+  return request("/api/auth/password-reset", {
+    method: "POST",
+    body: { email },
+  });
+}
+
+export async function resetCustomerPassword({ email, code, password }) {
+  return request("/api/auth/password-reset", {
+    method: "PATCH",
+    body: { email, code, password },
+  });
+}
+
 export async function signInCustomer({ identifier, password }) {
   const { session } = await request("/api/auth/signin", {
     method: "POST",
