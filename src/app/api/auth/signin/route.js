@@ -7,6 +7,16 @@ export const runtime = "nodejs";
 
 const transientDatabaseErrorCodes = new Set(["P1001", "P1002", "P1008", "P1017", "P2024", "P2028"]);
 const signinRetryDelays = [500, 1000, 2000, 4000];
+const customerSignInSelect = {
+  id: true,
+  username: true,
+  email: true,
+  phone: true,
+  fullName: true,
+  deliveryAddress: true,
+  deliveryCity: true,
+  passwordHash: true,
+};
 
 function isTransientDatabaseError(error) {
   const code = error && typeof error === "object" && "code" in error ? error.code : undefined;
@@ -36,8 +46,8 @@ export async function POST(request) {
   for (let attempt = 0; ; attempt += 1) {
     try {
       const profile = contact.type === "phone"
-        ? await prisma.customerProfile.findUnique({ where: { phone: contact.phone } })
-        : await prisma.customerProfile.findUnique({ where: { username: identifier } });
+        ? await prisma.customerProfile.findUnique({ where: { phone: contact.phone }, select: customerSignInSelect })
+        : await prisma.customerProfile.findUnique({ where: { username: identifier }, select: customerSignInSelect });
       const passwordMatches = profile
         ? await verifyPassword(password, profile.passwordHash)
         : (await hashPassword(password), false);
