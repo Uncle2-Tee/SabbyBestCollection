@@ -212,6 +212,7 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
   .page-home .hero-copy { max-width:none; align-self:start; padding:0; }
   .page-home .hero-copy .eyebrow { margin-bottom:14px; }
   .page-home .hero h1 { max-width:640px; font-size:clamp(40px,10vw,64px); line-height:1; letter-spacing:-.04em; }
+  .page-home .hero h1 .hero-brand-name { display:inline-block; max-width:100%; font-size:.78em; line-height:1.05; letter-spacing:-.05em; overflow-wrap:anywhere; }
   .page-home .hero-text { max-width:500px; margin-top:16px; font-size:14px; line-height:1.6; }
   .page-home .hero-actions { align-items:center; flex-wrap:wrap; gap:10px; margin-top:20px; }
   .page-home .hero-actions .primary-button,.page-home .hero-actions .secondary-button { min-height:46px; justify-content:center; padding:0 17px; gap:9px; font-size:12px; }
