@@ -18,6 +18,12 @@ function isTransientDatabaseError(error) {
     || (error?.name === "PrismaClientInitializationError" && /Can't reach database server/i.test(error.message || ""));
 }
 
+function isDatabaseConfigurationError(error) {
+  const code = getDatabaseErrorCode(error);
+  return ["P1000", "P1010", "P1013"].includes(code)
+    || error?.name === "PrismaClientInitializationError";
+}
+
 async function createCustomerProfile({ username, phone, passwordHash }) {
   for (let attempt = 0; ; attempt += 1) {
     try {
@@ -76,6 +82,9 @@ export async function POST(request) {
     }
     if (errorCode === "P2021" || errorCode === "P2022") {
       return NextResponse.json({ error: "Account creation is unavailable because the production database schema is out of date. Apply the latest Prisma schema and redeploy." }, { status: 503 });
+    }
+    if (isDatabaseConfigurationError(error)) {
+      return NextResponse.json({ error: "Account creation is unavailable because the production database connection is not configured correctly." }, { status: 503 });
     }
     return NextResponse.json({ error: "Could not create your account. Please try again." }, { status: 500 });
   }
