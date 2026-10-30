@@ -72,3 +72,7 @@ ARKESEL_SENDER_ID=your-registered-sender-id
 npm run lint
 npm run build
 ```
+
+`npm run build` automatically runs `prisma db push` and regenerates Prisma Client when
+`DATABASE_URL` is configured. The command does not accept destructive changes
+automatically; it fails and requires explicit review if Prisma detects potential data loss.
