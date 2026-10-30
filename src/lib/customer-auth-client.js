@@ -57,13 +57,13 @@ export async function resetCustomerPassword({ email, code, password }) {
   });
 }
 
-export async function signInCustomer({ identifier, password }) {
-  const { session } = await request("/api/auth/signin", {
+export async function signInCustomer({ identifier, password, code }) {
+  const result = await request("/api/auth/signin", {
     method: "POST",
-    body: { identifier, password },
+    body: code === undefined ? { identifier, password } : { identifier, code },
   });
-  publishCustomerSession(session);
-  return session;
+  if (result.session) publishCustomerSession(result.session);
+  return result;
 }
 
 export async function signOutCustomer() {

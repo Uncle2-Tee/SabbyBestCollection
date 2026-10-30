@@ -2,6 +2,7 @@ import { randomInt } from "node:crypto";
 import { NextResponse } from "next/server";
 import { hashPassword, verifyPassword } from "../../../../lib/customer-auth";
 import { maskCustomerIdentifier, normalizeCustomerIdentifier } from "../../../../lib/customer-identity";
+import { sendArkeselOtp, verifyArkeselOtp } from "../../../../lib/arkesel-otp";
 import { prisma } from "../../../../lib/prisma";
 
 export const runtime = "nodejs";
@@ -30,28 +31,7 @@ async function sendEmailCode(email, code) {
 }
 
 async function sendPhoneCode(number) {
-  const apiKey = process.env.ARKESEL_API_KEY;
-  const senderId = process.env.ARKESEL_SENDER_ID;
-  if (!apiKey || !senderId) throw new Error("Phone verification is not configured.");
-
-  const response = await fetch("https://sms.arkesel.com/api/otp/generate", {
-    method: "POST",
-    headers: { "api-key": apiKey, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      expiry: 5,
-      length: 6,
-      medium: "sms",
-      message: "Your SabbyBestCollection verification code is %otp_code%. It expires in 5 minutes.",
-      number,
-      sender_id: senderId,
-      type: "numeric",
-    }),
-    signal: AbortSignal.timeout(10000),
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || String(result.code) !== "1000") {
-    throw new Error("Phone provider rejected the verification message.");
-  }
+  return sendArkeselOtp(number);
 }
 
 async function parseRequest(request) {
@@ -115,7 +95,7 @@ export async function POST(request) {
       }
       const configurationError = error.message.includes("not configured");
       return NextResponse.json({
-        error: configurationError ? error.message : "Could not send a verification code. Check the contact and try again.",
+        error: error.userMessage || (configurationError ? error.message : "Could not send a verification code. Check the contact and try again."),
       }, { status: 503 });
     }
 
@@ -150,19 +130,7 @@ export async function PATCH(request) {
     if (challenge.channel === "email") {
       matches = Boolean(challenge.codeHash && await verifyPassword(code, challenge.codeHash));
     } else {
-      const apiKey = process.env.ARKESEL_API_KEY;
-      if (!apiKey) return NextResponse.json({ error: "Phone verification is not configured." }, { status: 503 });
-      const response = await fetch("https://sms.arkesel.com/api/otp/verify", {
-        method: "POST",
-        headers: { "api-key": apiKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ code, number: challenge.destination }),
-        signal: AbortSignal.timeout(10000),
-      });
-      const result = await response.json().catch(() => ({}));
-      if (response.status >= 500 || response.status === 429 || response.status === 401) {
-        throw new Error("Phone verification service is unavailable.");
-      }
-      matches = response.ok && String(result.code) === "1100";
+      matches = await verifyArkeselOtp(challenge.destination, code);
     }
 
     if (!matches) {
@@ -174,6 +142,6 @@ export async function PATCH(request) {
     return NextResponse.json({ verified: true });
   } catch (error) {
     console.error("Could not verify customer contact:", error);
-    return NextResponse.json({ error: "Could not verify the code. Please try again." }, { status: 503 });
+    return NextResponse.json({ error: error.userMessage || "Could not verify the code. Please try again." }, { status: 503 });
   }
 }

@@ -4,6 +4,22 @@ import { defaultHomepageImages } from "../../../lib/homepage-images";
 
 export const runtime = "nodejs";
 
+const transientDatabaseErrorCodes = new Set(["P1001", "P1002", "P1008", "P1017", "P2024"]);
+const settingsQueryRetryDelays = [250, 500, 1000];
+
+async function findHomepageSettingsWithRetry() {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await prisma.homepageSettings.findUnique({ where: { id: "homepage" } });
+    } catch (error) {
+      const code = error && typeof error === "object" && "code" in error ? error.code : undefined;
+      const retryDelay = settingsQueryRetryDelays[attempt];
+      if (!transientDatabaseErrorCodes.has(code) || retryDelay === undefined) throw error;
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
+    }
+  }
+}
+
 export async function GET() {
   if (!process.env.DATABASE_URL) {
     if (process.env.NODE_ENV === "development") {
@@ -14,7 +30,7 @@ export async function GET() {
   }
 
   try {
-    const settings = await prisma.homepageSettings.findUnique({ where: { id: "homepage" } });
+    const settings = await findHomepageSettingsWithRetry();
     return NextResponse.json({
       images: settings ? {
         heroEditorial: settings.heroEditorial,

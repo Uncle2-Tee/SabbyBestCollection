@@ -220,6 +220,10 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
   async function submitAuth(event) {
     event.preventDefault();
     const currentAuthMode = authMode;
+    if (currentAuthMode === "login-verification" && !/^\d{6}$/.test(form.verificationCode.trim())) {
+      setMessage("Enter the six-digit verification code.");
+      return;
+    }
     if ((currentAuthMode === "set-password" || currentAuthMode === "reset") && form.password !== form.confirmPassword) {
       setMessage("Your passwords do not match. Please check and try again.");
       return;
@@ -270,13 +274,30 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
         setPasswordOnlyLogin(true);
         setForm((current) => ({ ...current, verificationCode: "", password: "", confirmPassword: "" }));
         setMessage("Your password has been reset. Log in with your new password.");
+      } else if (currentAuthMode === "login-verification") {
+        const result = await signInCustomer({
+          identifier: form.identifier.trim(),
+          code: form.verificationCode.trim(),
+        });
+        onSignInSuccess(result.session);
+        setMessage("");
       } else {
-        const signedInSession = await signInCustomer({
+        const result = await signInCustomer({
           identifier: form.identifier.trim(),
           password: form.password,
         });
-        onSignInSuccess(signedInSession);
-        setMessage("");
+        if (result.requiresVerification) {
+          setVerificationDestination(result.destination);
+          setVerificationResendSeconds(result.retryAfterSeconds);
+          setAuthMode("login-verification");
+          setForm((current) => ({ ...current, verificationCode: "" }));
+          setMessage(result.sent
+            ? `We sent a one-time code to ${result.destination} to verify this login.`
+            : `A code was recently sent to ${result.destination}. Enter it below or wait before requesting another.`);
+        } else {
+          onSignInSuccess(result.session);
+          setMessage("");
+        }
       }
     } catch (error) {
       if (currentAuthMode === "signup" && error.existingAccount) {
@@ -309,14 +330,20 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
     setBusy(true);
     setMessage("");
     try {
-      const result = authMode === "reset"
+      const result = authMode === "login-verification"
+        ? await signInCustomer({ identifier: form.identifier.trim(), password: form.password })
+        : authMode === "reset"
         ? await requestCustomerPasswordReset(form.identifier.trim())
         : await startCustomerVerification(form.identifier.trim());
       setVerificationDestination(result.destination);
-      setVerificationResendSeconds(60);
+      setVerificationResendSeconds(result.retryAfterSeconds || 60);
       setMessage(authMode === "reset"
         ? result.message
-        : `We sent another verification code to ${result.destination}.`);
+        : authMode === "login-verification"
+          ? result.sent
+            ? `We sent another verification code to ${result.destination}.`
+            : `A code was recently sent to ${result.destination}. Please wait before requesting another.`
+          : `We sent another verification code to ${result.destination}.`);
     } catch (error) {
       setMessage(error.message || "Could not resend the verification code.");
     } finally {
@@ -402,6 +429,7 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
     const isSettingPassword = currentAuthMode === "set-password";
     const isSigningIn = currentAuthMode === "signin";
     const isPasswordOnlyLogin = isSigningIn && passwordOnlyLogin;
+    const isLoginVerification = currentAuthMode === "login-verification";
     const isRecoveringPassword = currentAuthMode === "recovery";
     const isResettingPassword = currentAuthMode === "reset";
     return <section className={`customer-account-root customer-auth-screen${isSigningUp ? " customer-signup-screen" : ""}`}>
@@ -410,11 +438,13 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
           <span className="customer-auth-monogram">S</span>
           <span className="customer-auth-brand-name">SabbyBestCollection</span>
         </div>
-        <h1>{isSigningUp ? "Create your account" : isVerifying ? "Verify your contact" : isSettingPassword ? "Set your password" : isRecoveringPassword ? "Reset your password" : isResettingPassword ? "Choose a new password" : "Welcome Back"}</h1>
+        <h1>{isSigningUp ? "Create your account" : isVerifying ? "Verify your contact" : isLoginVerification ? "Verify your phone" : isSettingPassword ? "Set your password" : isRecoveringPassword ? "Reset your password" : isResettingPassword ? "Choose a new password" : "Welcome Back"}</h1>
         <p className="customer-auth-intro">{isSigningUp
           ? "Enter your email address or phone number to get started."
           : isVerifying
             ? `Enter the six-digit code sent to ${verificationDestination}.`
+            : isLoginVerification
+              ? `Enter the six-digit code sent to ${verificationDestination} to securely complete your login.`
             : isSettingPassword
               ? "Choose a password to secure your new account."
               : isRecoveringPassword
@@ -425,7 +455,8 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
         <form onSubmit={submitAuth} aria-busy={busy}>
           {(isSigningUp || (isSigningIn && !isPasswordOnlyLogin) || isRecoveringPassword) && <label htmlFor="customer-identifier">{isRecoveringPassword ? "Email address" : "Email or phone number"}<input id="customer-identifier" name="identifier" type={isRecoveringPassword ? "email" : "text"} autoComplete={isRecoveringPassword ? "email" : "username"} autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder={isRecoveringPassword ? "you@example.com" : "e.g. elliot@example.com or +233 24 123 4567"} required maxLength={254} value={form.identifier} onChange={(event) => setForm({ ...form, identifier: event.target.value })} /></label>}
           {(isPasswordOnlyLogin || isResettingPassword) && <div className="customer-auth-identifier"><span>{form.identifier}</span><button className="account-text-action" type="button" disabled={busy} onClick={() => { setPasswordOnlyLogin(false); setVerificationResendSeconds(0); setAuthMode(isResettingPassword ? "recovery" : "signin"); setMessage(""); setForm((current) => ({ ...current, verificationCode: "", password: "", confirmPassword: "" })); }}>Change</button></div>}
-          {(isVerifying || isResettingPassword) && <label htmlFor="customer-verification-code">Verification code<input id="customer-verification-code" name="verificationCode" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" placeholder="6-digit code" required maxLength={6} value={form.verificationCode} onChange={(event) => setForm({ ...form, verificationCode: event.target.value.replace(/\D/g, "").slice(0, 6) })} /></label>}
+          {isLoginVerification && <div className="customer-auth-identifier"><span>Phone number · {verificationDestination}</span><button className="account-text-action" type="button" disabled={busy} onClick={() => { setAuthMode("signin"); setPasswordOnlyLogin(false); setVerificationResendSeconds(0); setMessage(""); setForm((current) => ({ ...current, password: "", verificationCode: "" })); }}>Change</button></div>}
+          {(isVerifying || isLoginVerification || isResettingPassword) && <label htmlFor="customer-verification-code">Verification code<input id="customer-verification-code" name="verificationCode" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" placeholder="6-digit code" required maxLength={6} value={form.verificationCode} onChange={(event) => setForm({ ...form, verificationCode: event.target.value.replace(/\D/g, "").slice(0, 6) })} /></label>}
           {(isSigningIn || isSettingPassword || isResettingPassword) && <label htmlFor="customer-password">{isResettingPassword ? "New password" : "Password"}
             <span className="customer-password-field">
               <input id="customer-password" name="password" type={showPassword ? "text" : "password"} autoComplete={isSettingPassword || isResettingPassword ? "new-password" : "current-password"} placeholder={isSettingPassword || isResettingPassword ? "Create a password" : "Password"} minLength={8} maxLength={128} required value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
@@ -441,11 +472,11 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
             </label>
           </>}
           {isVerifying && <button className="customer-forgot-link" type="button" onClick={() => { setAuthMode("signup"); setMessage(""); setForm((current) => ({ ...current, verificationCode: "" })); }}>Change email or phone</button>}
-          {(isVerifying || isResettingPassword) && <button className="customer-forgot-link" type="button" onClick={resendVerificationCode} disabled={busy || verificationResendSeconds > 0}>{verificationResendSeconds > 0 ? `Resend code in ${Math.floor(verificationResendSeconds / 60)}:${String(verificationResendSeconds % 60).padStart(2, "0")}` : "Resend code"}</button>}
+          {(isVerifying || isLoginVerification || isResettingPassword) && <button className="customer-forgot-link" type="button" onClick={resendVerificationCode} disabled={busy || verificationResendSeconds > 0}>{verificationResendSeconds > 0 ? `Resend code in ${Math.floor(verificationResendSeconds / 60)}:${String(verificationResendSeconds % 60).padStart(2, "0")}` : "Resend code"}</button>}
           {(isSettingPassword || isResettingPassword) && <p className="customer-password-hint">Use at least 8 characters.</p>}
           {isSigningIn && <button className="customer-forgot-link" type="button" onClick={() => { setAuthMode("recovery"); setMessage(""); setForm((current) => ({ ...current, password: "", confirmPassword: "" })); }}>Forgot password?</button>}
           {message && <p className="customer-account-notice" role="status" aria-live="polite">{message}</p>}
-          <button className="primary-button wide" type="submit" disabled={busy}>{busy ? "Please wait…" : isRecoveringPassword ? "Send reset code" : isResettingPassword ? "Reset password" : isSigningUp ? "Continue" : isVerifying ? "Verify code" : isSettingPassword ? "Create account" : "Log In"}</button>
+          <button className="primary-button wide" type="submit" disabled={busy}>{busy ? "Please wait…" : isRecoveringPassword ? "Send reset code" : isResettingPassword ? "Reset password" : isSigningUp ? "Continue" : isVerifying ? "Verify code" : isLoginVerification ? "Verify & Log In" : isSettingPassword ? "Create account" : "Log In"}</button>
         </form>
         {isSigningUp || isSigningIn ? <p className="customer-auth-switch">{isSigningUp ? "Already have an account?" : "New to SabbyBestCollection?"}
           <button className="account-text-action" type="button" disabled={busy} onClick={() => { setAuthMode(isSigningUp ? "signin" : "signup"); setPasswordOnlyLogin(false); setMessage(""); setShowPassword(false); setShowConfirmPassword(false); setForm((current) => ({ ...current, password: "", confirmPassword: "", verificationCode: "" })); }}>
