@@ -42,7 +42,11 @@ const accountSections = [
 
 async function apiJson(response) {
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.error || "The request could not be completed.");
+  if (!response.ok) {
+    const error = new Error(body.error || "The request could not be completed.");
+    error.status = response.status;
+    throw error;
+  }
   return body;
 }
 
@@ -66,9 +70,12 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
   const [busy, setBusy] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [message, setMessage] = useState("");
+  const authIdentifierRef = useRef(null);
   const [accountSettings, setAccountSettings] = useState({
     fullName: session?.user?.user_metadata?.full_name || "",
     email: session?.user?.email || "",
+    deliveryAddress: session?.user?.delivery_address || "",
+    deliveryCity: session?.user?.delivery_city || "",
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
@@ -80,6 +87,7 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
     fullName: session?.user?.user_metadata?.full_name || "",
     email: session?.user?.email || "",
   });
+  const [deliverySaveStatus, setDeliverySaveStatus] = useState("");
   const profileSaveInFlight = useRef(false);
   const [notificationPermission, setNotificationPermission] = useState(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -87,6 +95,7 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
   const notificationEnabledRef = useRef(false);
   const orderStatuses = useRef(new Map());
   const initialOrdersLoaded = useRef(false);
+  const authSubmitInFlight = useRef(false);
 
   useEffect(() => {
     if (verificationResendSeconds === 0) return undefined;
@@ -95,6 +104,12 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
     }, 1000);
     return () => window.clearTimeout(timer);
   }, [verificationResendSeconds]);
+
+  useEffect(() => {
+    if (!session?.user && authMode === "signin" && !passwordOnlyLogin) {
+      authIdentifierRef.current?.focus();
+    }
+  }, [authMode, passwordOnlyLogin, session]);
 
   useEffect(() => {
     const user = session?.user;
@@ -158,6 +173,39 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
   }, [accountSettings.fullName, accountSettings.email, session?.user?.id, session?.user?.phone, savedProfile, profileSaveRevision, onAccountUpdated]);
 
   useEffect(() => {
+    const userId = session?.user?.id;
+    const deliveryAddress = accountSettings.deliveryAddress.trim();
+    const deliveryCity = accountSettings.deliveryCity.trim();
+    if (!userId || (deliveryAddress === (session.user.delivery_address || "") && deliveryCity === (session.user.delivery_city || ""))) return undefined;
+    if ((deliveryAddress && deliveryAddress.length < 8) || (deliveryCity && deliveryCity.length < 2)) return undefined;
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      setDeliverySaveStatus("Saving delivery details…");
+      try {
+        const response = await fetch("/api/customer/account", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deliveryAddress, deliveryCity }),
+        });
+        const { user: updatedUser } = await apiJson(response);
+        if (!cancelled) {
+          onAccountUpdated(updatedUser);
+          setDeliverySaveStatus("Delivery details saved.");
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Could not save delivery details:", error);
+          setDeliverySaveStatus(error.message || "Could not save delivery details.");
+        }
+      }
+    }, 600);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [accountSettings.deliveryAddress, accountSettings.deliveryCity, session, onAccountUpdated]);
+
+  useEffect(() => {
     notificationEnabledRef.current = notificationsEnabled;
   }, [notificationsEnabled]);
 
@@ -193,6 +241,7 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
           setOrdersError("");
         }
       } catch (error) {
+        if (error.status === 401) return;
         if (!cancelled) {
           console.error("Could not refresh customer orders:", error);
           setOrdersError(error.message || "Could not load your orders.");
@@ -220,6 +269,7 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
 
   async function submitAuth(event) {
     event.preventDefault();
+    if (authSubmitInFlight.current) return;
     const currentAuthMode = authMode;
     if (currentAuthMode === "login-verification" && !/^\d{6}$/.test(form.verificationCode.trim())) {
       setMessage("Enter the six-digit verification code.");
@@ -239,6 +289,7 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
       : "Enter your username or phone number to continue.");
       return;
     }
+    authSubmitInFlight.current = true;
     setBusy(true);
     setMessage("");
     try {
@@ -250,10 +301,11 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
         setForm((current) => ({ ...current, verificationCode: "", password: "", confirmPassword: "" }));
         setMessage(result.message);
       } else if (currentAuthMode === "signup") {
-        await signUpCustomer({ username: form.username.trim(), phone: form.phone.trim(), password: form.password });
+        const username = form.username.trim();
+        await signUpCustomer({ username, phone: form.phone.trim(), password: form.password });
         setAuthMode("signin");
         setPasswordOnlyLogin(false);
-        setForm((current) => ({ ...current, identifier: form.username.trim(), username: "", phone: "", password: "" }));
+        setForm((current) => ({ ...current, identifier: username, username: "", phone: "", password: "", confirmPassword: "", verificationCode: "" }));
         setMessage("Account created. Log in with your username or phone number.");
       } else if (currentAuthMode === "verify") {
         await verifyCustomerContact(form.identifier.trim(), form.verificationCode.trim());
@@ -291,12 +343,14 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
     } catch (error) {
       if (currentAuthMode === "signup" && error.existingAccount) {
         setAuthMode("signin");
-        setForm((current) => ({ ...current, identifier: form.username.trim(), username: "", phone: "", password: "" }));
+        setPasswordOnlyLogin(false);
+        setForm((current) => ({ ...current, identifier: form.username.trim(), username: "", phone: "", password: "", confirmPassword: "", verificationCode: "" }));
         setMessage("That username or phone number is already in use. Log in instead.");
         return;
       }
       setMessage(error.message || "Could not complete sign-in.");
     } finally {
+      authSubmitInFlight.current = false;
       setBusy(false);
     }
   }
@@ -442,7 +496,7 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
               : "Log in with your username or phone number and password."}</p>
         <form onSubmit={submitAuth} aria-busy={busy}>
           {isSigningUp && <><label htmlFor="customer-username">Username<input id="customer-username" name="username" type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="e.g. elliot_gh" required maxLength={30} value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} /></label><label htmlFor="customer-phone">Phone number<input id="customer-phone" name="phone" type="tel" autoComplete="tel" placeholder="e.g. +233 24 123 4567" required maxLength={30} value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></label></>}
-          {(isSigningIn && !isPasswordOnlyLogin || isRecoveringPassword) && <label htmlFor="customer-identifier">{isRecoveringPassword ? "Email address" : "Username or phone number"}<input id="customer-identifier" name="identifier" type={isRecoveringPassword ? "email" : "text"} autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder={isRecoveringPassword ? "you@example.com" : "e.g. elliot_gh or +233 24 123 4567"} required maxLength={254} value={form.identifier} onChange={(event) => setForm({ ...form, identifier: event.target.value })} /></label>}
+          {(isSigningIn && !isPasswordOnlyLogin || isRecoveringPassword) && <label htmlFor="customer-identifier">{isRecoveringPassword ? "Email address" : "Username or phone number"}<input ref={isSigningIn ? authIdentifierRef : undefined} id="customer-identifier" name="identifier" type={isRecoveringPassword ? "email" : "text"} autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder={isRecoveringPassword ? "you@example.com" : "e.g. elliot_gh or +233 24 123 4567"} required maxLength={254} value={form.identifier} onChange={(event) => setForm({ ...form, identifier: event.target.value })} /></label>}
           {(isPasswordOnlyLogin || isResettingPassword) && <div className="customer-auth-identifier"><span>{form.identifier}</span><button className="account-text-action" type="button" disabled={busy} onClick={() => { setPasswordOnlyLogin(false); setVerificationResendSeconds(0); setAuthMode(isResettingPassword ? "recovery" : "signin"); setMessage(""); setForm((current) => ({ ...current, verificationCode: "", password: "", confirmPassword: "" })); }}>Change</button></div>}
           {isLoginVerification && <div className="customer-auth-identifier"><span>Phone number · {verificationDestination}</span><button className="account-text-action" type="button" disabled={busy} onClick={() => { setAuthMode("signin"); setPasswordOnlyLogin(false); setVerificationResendSeconds(0); setMessage(""); setForm((current) => ({ ...current, password: "", verificationCode: "" })); }}>Change</button></div>}
           {(isVerifying || isLoginVerification || isResettingPassword) && <label htmlFor="customer-verification-code">Verification code<input id="customer-verification-code" name="verificationCode" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" placeholder="6-digit code" required maxLength={6} value={form.verificationCode} onChange={(event) => setForm({ ...form, verificationCode: event.target.value.replace(/\D/g, "").slice(0, 6) })} /></label>}
@@ -464,7 +518,7 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
           {(isVerifying || isLoginVerification || isResettingPassword) && <button className="customer-forgot-link" type="button" onClick={resendVerificationCode} disabled={busy || verificationResendSeconds > 0}>{verificationResendSeconds > 0 ? `Resend code in ${Math.floor(verificationResendSeconds / 60)}:${String(verificationResendSeconds % 60).padStart(2, "0")}` : "Resend code"}</button>}
           {(isSettingPassword || isResettingPassword) && <p className="customer-password-hint">Use at least 8 characters.</p>}
           {message && <p className="customer-account-notice" role="status" aria-live="polite">{message}</p>}
-          <button className="primary-button wide" type="submit" disabled={busy}>{busy ? "Please wait…" : isRecoveringPassword ? "Send reset code" : isResettingPassword ? "Reset password" : isSigningUp ? "Continue" : isVerifying ? "Verify code" : isLoginVerification ? "Verify & Log In" : isSettingPassword ? "Create account" : "Log In"}</button>
+          <button className="primary-button wide" type="submit" disabled={busy}>{busy ? (isSigningUp ? "Creating account…" : isSigningIn ? "Signing in…" : "Please wait…") : isRecoveringPassword ? "Send reset code" : isResettingPassword ? "Reset password" : isSigningUp ? "Create account" : isVerifying ? "Verify code" : isLoginVerification ? "Verify & Log In" : isSettingPassword ? "Create account" : "Log In"}</button>
         </form>
         {isSigningUp || isSigningIn ? <p className="customer-auth-switch">{isSigningUp ? "Already have an account?" : "New to SabbyBestCollection?"}
           <button className="account-text-action" type="button" disabled={busy} onClick={() => { setAuthMode(isSigningUp ? "signin" : "signup"); setPasswordOnlyLogin(false); setMessage(""); setShowPassword(false); setShowConfirmPassword(false); setForm((current) => ({ ...current, password: "", confirmPassword: "", verificationCode: "" })); }}>
@@ -523,7 +577,7 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
           {wishlistProducts.length ? <div className="wishlist-grid">{wishlistProducts.map((product) => <article className="wishlist-card" key={product.id}><div className="wishlist-card-image" style={{ backgroundImage: `url(${product.image})` }} role="img" aria-label={product.name}><button className="wishlist-remove" onClick={() => onRemoveFromWishlist(product)} aria-label={`Remove ${product.name} from wishlist`}>×</button>{product.badge && <span className="product-badge">{product.badge}</span>}</div><div className="wishlist-card-info"><p className="eyebrow">{product.category}</p><h3>{product.name}</h3><p className="wishlist-card-price">{new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS" }).format(product.price)}</p><button className="add-to-cart-button" onClick={() => onAddToCart(product)}>Add to cart</button></div></article>)}</div> : <div className="wishlist-empty"><h3>Your wishlist is empty</h3><p>Save products you love and find them here later.</p></div>}
         </section>}
         {activeSection === "profile" && <div className="account-empty"><p className="eyebrow">Your details</p><h2>My Profile</h2><p><strong>Name</strong><br />{fullName}</p>{session.user.username && <p><strong>Username</strong><br />{session.user.username}</p>}{session.user.phone && <p><strong>Phone number</strong><br />{session.user.phone}</p>}<p>Your account details are securely managed in the store database.</p></div>}
-        {activeSection === "addresses" && <div className="account-empty"><p className="eyebrow">Delivery details</p><h2>Delivery Addresses</h2><p>No saved delivery addresses yet. Add your delivery address during checkout and it will be included with your order.</p></div>}
+        {activeSection === "addresses" && <section className="customer-account-tools"><div className="account-section-heading"><div><p className="eyebrow">Delivery details</p><h2>Delivery Addresses</h2></div></div><article className="account-tool-card account-settings-form"><p className="account-tool-muted">These details are saved automatically and can be edited anytime.</p><label htmlFor="account-delivery-address">Delivery address<textarea id="account-delivery-address" autoComplete="street-address" minLength={8} value={accountSettings.deliveryAddress} onChange={(event) => { setDeliverySaveStatus(""); setAccountSettings((current) => ({ ...current, deliveryAddress: event.target.value })); }} placeholder="House number, street, landmark" /></label><label htmlFor="account-delivery-city">City / town<input id="account-delivery-city" autoComplete="address-level2" minLength={2} value={accountSettings.deliveryCity} onChange={(event) => { setDeliverySaveStatus(""); setAccountSettings((current) => ({ ...current, deliveryCity: event.target.value })); }} placeholder="e.g. Accra" /></label><p className="account-profile-save-status" role="status" aria-live="polite">{deliverySaveStatus || "Your saved details will be used at checkout."}</p></article></section>}
         {activeSection === "payments" && <div className="account-empty"><p className="eyebrow">Secure payments</p><h2>Payment Methods</h2><p>Payment is currently handled through Mobile Money at checkout. Payment card details are not stored in your account.</p></div>}
         {activeSection === "returns" && <div className="account-empty account-help-card"><p className="eyebrow">Order support</p><h2>Returns &amp; Refunds</h2><p>For help with a return or refund, contact our support team with your order number.</p><div className="account-help-actions">{whatsappHref ? <a className="account-help-whatsapp" href={whatsappHref} target="_blank" rel="noreferrer"><WhatsAppIcon aria-hidden="true" /> WhatsApp</a> : <span className="account-help-whatsapp contact-unavailable"><WhatsAppIcon aria-hidden="true" /> WhatsApp</span>}</div></div>}
         {activeSection === "notifications" && <section className="customer-account-tools">

@@ -52,7 +52,7 @@ export async function POST(request) {
     || items.some((item) => !item || typeof item.productId !== "string" || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 20)
     || typeof customerName !== "string" || customerName.trim().length < 2 || customerName.trim().length > 120
     || typeof phone !== "string" || phone.trim().length < 7 || phone.trim().length > 30
-    || typeof shippingAddress !== "string" || shippingAddress.trim().length < 8 || shippingAddress.trim().length > 500
+    || typeof shippingAddress !== "string" || shippingAddress.trim().length < 8
     || typeof city !== "string" || city.trim().length < 2 || city.trim().length > 120) {
     return NextResponse.json({ error: "Provide a valid name, cart, phone number, delivery address, and city or town." }, { status: 400 });
   }

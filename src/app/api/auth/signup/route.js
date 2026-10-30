@@ -5,6 +5,36 @@ import { prisma } from "../../../../lib/prisma";
 
 export const runtime = "nodejs";
 
+const transientDatabaseErrorCodes = new Set(["P1001", "P1002", "P1008", "P1017", "P2024", "P2028"]);
+const signupRetryDelays = [500, 1000, 2000, 4000];
+
+function isTransientDatabaseError(error) {
+  const code = error && typeof error === "object" && "code" in error ? error.code : undefined;
+  return transientDatabaseErrorCodes.has(code)
+    || (error?.name === "PrismaClientInitializationError" && /Can't reach database server/i.test(error.message || ""));
+}
+
+async function createCustomerProfile({ username, phone, passwordHash }) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      const existing = await prisma.customerProfile.findFirst({
+        where: { OR: [{ phone }, { username }] },
+        select: { id: true },
+      });
+      if (existing) return "existing";
+
+      await prisma.customerProfile.create({
+        data: { username, phone, passwordHash },
+      });
+      return "created";
+    } catch (error) {
+      const retryDelay = signupRetryDelays[attempt];
+      if (!isTransientDatabaseError(error) || retryDelay === undefined) throw error;
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
+    }
+  }
+}
+
 export async function POST(request) {
   let body;
   try {
@@ -22,28 +52,9 @@ export async function POST(request) {
 
   try {
     const passwordHash = await hashPassword(password);
-    const profile = await prisma.$transaction(async (transaction) => {
-      const existing = await transaction.customerProfile.findUnique({
-        where: { phone: contact.phone },
-        select: { id: true },
-      });
-      const existingUsername = await transaction.customerProfile.findUnique({
-        where: { username },
-        select: { id: true },
-      });
-      if (existing || existingUsername) return "existing";
-
-      const created = await transaction.customerProfile.create({
-        data: { username, phone: contact.phone, passwordHash },
-      });
-      return created;
-    });
-
-    if (profile === "existing") {
+    const result = await createCustomerProfile({ username, phone: contact.phone, passwordHash });
+    if (result === "existing") {
       return NextResponse.json({ error: "That username or phone number is already in use. Log in instead.", existingAccount: true }, { status: 409 });
-    }
-    if (!profile) {
-      return NextResponse.json({ error: "Could not create your account." }, { status: 400 });
     }
     return NextResponse.json({ message: "Account created. Log in with your username or phone number." }, { status: 201 });
   } catch (error) {
@@ -51,6 +62,9 @@ export async function POST(request) {
       return NextResponse.json({ error: "That username or phone number is already in use. Log in instead.", existingAccount: true }, { status: 409 });
     }
     console.error("Could not create customer account:", error);
+    if (isTransientDatabaseError(error)) {
+      return NextResponse.json({ error: "Account creation is temporarily unavailable. Please try again in a moment." }, { status: 503 });
+    }
     return NextResponse.json({ error: "Could not create your account. Please try again." }, { status: 500 });
   }
 }

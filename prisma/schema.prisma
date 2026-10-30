@@ -57,6 +57,8 @@ model CustomerProfile {
   fullName     String?           @map("full_name")
   email        String?           @unique
   phone        String?           @unique
+  deliveryAddress String?        @map("delivery_address")
+  deliveryCity    String?        @map("delivery_city")
   passwordHash String            @map("password_hash")
   cart         Json              @default("[]") @db.JsonB
   wishlist     Json              @default("[]") @db.JsonB

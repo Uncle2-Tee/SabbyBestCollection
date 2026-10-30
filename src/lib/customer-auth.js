@@ -3,7 +3,7 @@ import { promisify } from "node:util";
 import { prisma } from "./prisma";
 
 const scryptAsync = promisify(scrypt);
-const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
+const SESSION_MAX_AGE = 60 * 60 * 24 * 365 * 10;
 export const CUSTOMER_SESSION_COOKIE = "sabbybestcollection_customer_session";
 
 export const customerSessionCookieOptions = {
@@ -20,6 +20,8 @@ export function publicCustomer(profile) {
     username: profile.username,
     email: profile.email,
     phone: profile.phone,
+    delivery_address: profile.deliveryAddress,
+    delivery_city: profile.deliveryCity,
     user_metadata: { full_name: profile.fullName },
   };
 }
