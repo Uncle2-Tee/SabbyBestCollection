@@ -47,7 +47,6 @@ const accountSections = [
   { id: "notifications", label: "Notifications", icon: "bell" },
   { id: "settings", label: "Settings", icon: "settings" },
   { id: "support", label: "Help & Support", icon: "help" },
-  { id: "logout", label: "Logout", icon: "logout" },
 ];
 const iconComponents = { bag: ShoppingBagIcon, search: SearchIcon, shop: StorefrontOutlinedIcon, arrow: ArrowForwardIcon, close: CloseIcon, plus: AddIcon, minus: RemoveIcon, check: CheckIcon, shield: ShieldIcon, user: PersonIcon, home: HomeRoundedIcon, info: InfoOutlinedIcon, orders: ReceiptIcon, heart: FavoriteIcon, favorite: FavoriteRoundedIcon, star: StarIcon, location: LocationIcon, payment: CreditCardIcon, returns: ReplayIcon, bell: NotificationsIcon, settings: SettingsIcon, help: HelpIcon, logout: LogoutIcon };
 

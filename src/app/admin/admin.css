@@ -19,16 +19,12 @@
 @media (max-width:780px) { .login-card { padding:42px 27px 32px; }.dashboard-header { padding:0 21px; }.secure-status { display:none; }.dashboard-heading { padding:51px 21px 33px; }.dashboard-grid { grid-template-columns:1fr; padding:0 13px; gap:14px; }.catalog-form,.catalog-panel { padding:22px; }.catalog-item { grid-template-columns:48px minmax(0,1fr) auto; }.catalog-image { width:48px; height:48px; }.catalog-item button { grid-column:2 / -1; justify-self:start; margin:7px 0 0; }.catalog-item { padding:11px 0; }.field-row { grid-template-columns:1fr; gap:0; } }
 .database-warning { max-width:1096px; margin:0 auto 22px; padding:14px 16px; border:1px solid #bd8d65; background:#faf2e5; color:#694b2e; font-size:13px; line-height:1.5; }
 .homepage-images-panel { max-width:1096px; margin:0 auto 24px; padding:0 26px; border-color:#eed6df; background:linear-gradient(135deg,#fff5f8,#fffaf7 76%); }
-.homepage-images-summary { min-height:82px; display:flex; align-items:center; justify-content:space-between; gap:16px; list-style:none; cursor:pointer; }
-.homepage-images-summary::-webkit-details-marker { display:none; }
-.homepage-images-summary:focus-visible { outline:2px solid var(--atelier-rose); outline-offset:3px; border-radius:6px; }
+.homepage-images-summary { min-height:82px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
 .homepage-images-summary>span:first-child { display:grid; gap:6px; }
 .homepage-images-summary .atelier-kicker { margin:0; color:#a34e70; }
 .homepage-images-summary strong { color:var(--atelier-ink); font:400 25px/1 Georgia,serif; letter-spacing:-.04em; }
 .homepage-images-summary-note { display:flex; align-items:center; gap:12px; color:#87405f; font-size:10px; font-weight:600; letter-spacing:.04em; }
-.homepage-images-summary-note::after { width:8px; height:8px; border-right:1.5px solid currentColor; border-bottom:1.5px solid currentColor; content:""; transform:rotate(45deg) translateY(-2px); transition:transform .18s ease; }
-.homepage-images-panel[open] .homepage-images-summary { border-bottom:1px solid #eed6df; }
-.homepage-images-panel[open] .homepage-images-summary-note::after { transform:rotate(225deg) translate(-2px,-1px); }
+.homepage-images-summary { border-bottom:1px solid #eed6df; }
 .homepage-images-content { padding:18px 0 22px; }
 .homepage-images-description { margin:0 0 18px; color:var(--atelier-muted); font-size:12px; line-height:1.5; }
 .homepage-image-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:15px; }
@@ -364,7 +360,7 @@
 .homepage-images-panel { border-color:#eadbca; background:linear-gradient(135deg,#fbf5ed,#fffaf5 76%); }
 .homepage-images-summary .atelier-kicker { color:#9b7045; }
 .homepage-images-summary-note { color:#875d35; }
-.homepage-images-panel[open] .homepage-images-summary { border-bottom-color:#eadbca; }
+.homepage-images-summary { border-bottom-color:#eadbca; }
 .homepage-image-card { border-color:#eee1d3; box-shadow:0 4px 12px rgba(114,79,47,.05); }
 .homepage-image-upload { border-color:#e6d3bd; background:#fffaf4; color:#875d35; }
 .homepage-image-upload:hover { background:#f7ecdf; }

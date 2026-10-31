@@ -14,6 +14,12 @@ export const customerSessionCookieOptions = {
   maxAge: SESSION_MAX_AGE,
 };
 
+export function formatCustomerName(value) {
+  return typeof value === "string"
+    ? value.trim().toLowerCase().replace(/(^|[\s'-])([a-z])/g, (_, separator, letter) => `${separator}${letter.toUpperCase()}`)
+    : "";
+}
+
 export function publicCustomer(profile) {
   return {
     id: profile.id,
@@ -22,7 +28,7 @@ export function publicCustomer(profile) {
     phone: profile.phone,
     delivery_address: profile.deliveryAddress,
     delivery_city: profile.deliveryCity,
-    user_metadata: { full_name: profile.fullName },
+    user_metadata: { full_name: formatCustomerName(profile.fullName || profile.username) },
   };
 }
 

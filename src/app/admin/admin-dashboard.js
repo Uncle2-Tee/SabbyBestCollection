@@ -412,11 +412,11 @@ export default function AdminDashboard({ username }) {
     <section className="dashboard-heading"><p className="atelier-kicker">Store administration</p><h1>{greeting}</h1><p>Keep your collection polished, current, and ready to shop.</p></section>
     {message && !databaseReady && <p className="database-warning" role="alert">{message} Check DATABASE_URL in your environment and run `npx prisma db push` if the schema has not been applied.</p>}
     <section className="dashboard-overview-grid" aria-label="Storefront images and customer activity">
-      <details className="homepage-images-panel">
-        <summary className="homepage-images-summary" aria-labelledby="homepage-images-heading">
+      <section className="homepage-images-panel" aria-labelledby="homepage-images-heading">
+        <div className="homepage-images-summary">
           <span><span className="atelier-kicker">Storefront</span><strong id="homepage-images-heading">Home page images</strong></span>
           <span className="homepage-images-summary-note">Manage hero photos</span>
-        </summary>
+        </div>
         <div className="homepage-images-content">
           <p className="homepage-images-description">Choose the full-bleed hero background and two supporting overlay images. Changes appear on the storefront after you save.</p>
           <div className="homepage-image-grid">{homepageImageFields.map(({ key, label, description }) => (
@@ -428,7 +428,7 @@ export default function AdminDashboard({ username }) {
           ))}</div>
           <button className="homepage-images-save" type="button" onClick={saveHomepageImages} disabled={!databaseReady || homepageImagesSaving || Boolean(homepageImageUploading)}>{homepageImagesSaving ? "Saving…" : "Save home page images"}</button>
         </div>
-      </details>
+      </section>
       <section className="orders-panel" aria-labelledby="orders-heading">
       <div className="orders-panel-heading">
         <div><p className="atelier-kicker">Customer activity</p><h2 id="orders-heading">Orders <span className="orders-count">{orders.length}</span></h2><p>New orders are checked every 30 seconds while the dashboard is open.</p></div>

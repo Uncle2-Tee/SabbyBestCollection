@@ -420,7 +420,8 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
   .account-heading h1 { font-size:38px; }
   .account-layout { grid-template-columns:minmax(0,1fr); gap:25px; padding-top:20px; }
   .account-sidebar { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; }
-  .account-sidebar button { min-width:0; min-height:40px; gap:8px; padding:0 8px; font-size:10px; }
+  .account-sidebar button { min-width:0; min-height:40px; gap:8px; padding:0 8px; font-size:10px; font-weight:700; letter-spacing:.01em; }
+  .account-sidebar button.active { font-weight:700; }
   .account-sidebar button svg { width:16px; height:16px; }
   .account-content { display:none; }
   .account-mobile-back { display:none; }

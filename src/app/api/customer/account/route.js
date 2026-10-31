@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
-import { CUSTOMER_SESSION_COOKIE, getAuthenticatedUser, hashPassword, publicCustomer, verifyPassword } from "../../../../lib/customer-auth";
+import { CUSTOMER_SESSION_COOKIE, formatCustomerName, getAuthenticatedUser, hashPassword, publicCustomer, verifyPassword } from "../../../../lib/customer-auth";
 import { prisma } from "../../../../lib/prisma";
 
 export const runtime = "nodejs";
@@ -46,7 +46,7 @@ export async function PATCH(request) {
     }
 
     const data = { updatedAt: new Date() };
-    if (hasName) data.fullName = fullName;
+    if (hasName) data.fullName = formatCustomerName(fullName);
     if (hasEmail) data.email = email;
     if (hasDeliveryAddress) data.deliveryAddress = deliveryAddress || null;
     if (hasDeliveryCity) data.deliveryCity = deliveryCity || null;
