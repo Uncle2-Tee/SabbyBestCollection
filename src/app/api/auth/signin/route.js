@@ -39,15 +39,16 @@ export async function POST(request) {
   }
 
   const contact = normalizeCustomerIdentifier(identifier);
-  if (!contact) {
+  const isUsername = !contact && /^[a-z0-9][a-z0-9._-]{2,29}$/.test(identifier);
+  if (!isUsername && !contact) {
     return NextResponse.json({ error: "Username/phone or password is incorrect." }, { status: 401 });
   }
 
   for (let attempt = 0; ; attempt += 1) {
     try {
-      const profile = contact.type === "phone"
-        ? await prisma.customerProfile.findUnique({ where: { phone: contact.phone }, select: customerSignInSelect })
-        : await prisma.customerProfile.findUnique({ where: { username: identifier }, select: customerSignInSelect });
+      const profile = isUsername
+        ? await prisma.customerProfile.findUnique({ where: { username: identifier }, select: customerSignInSelect })
+        : await prisma.customerProfile.findUnique({ where: { phone: contact.phone }, select: customerSignInSelect });
       const passwordMatches = profile
         ? await verifyPassword(password, profile.passwordHash)
         : (await hashPassword(password), false);

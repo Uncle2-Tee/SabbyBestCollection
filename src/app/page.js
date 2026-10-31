@@ -17,7 +17,6 @@ import NotificationsIcon from "@mui/icons-material/NotificationsNone";
 import PersonIcon from "@mui/icons-material/PersonOutlineOutlined";
 import ReceiptIcon from "@mui/icons-material/ReceiptLongOutlined";
 import RemoveIcon from "@mui/icons-material/Remove";
-import ReplayIcon from "@mui/icons-material/ReplayOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/SettingsOutlined";
 import ShieldIcon from "@mui/icons-material/VerifiedUserOutlined";
@@ -43,12 +42,11 @@ const accountSections = [
   { id: "cart", label: "Cart", icon: "bag" },
   { id: "addresses", label: "Delivery Addresses", icon: "location" },
   { id: "payments", label: "Payment Methods", icon: "payment" },
-  { id: "returns", label: "Returns & Refunds", icon: "returns" },
   { id: "notifications", label: "Notifications", icon: "bell" },
   { id: "settings", label: "Settings", icon: "settings" },
   { id: "support", label: "Help & Support", icon: "help" },
 ];
-const iconComponents = { bag: ShoppingBagIcon, search: SearchIcon, shop: StorefrontOutlinedIcon, arrow: ArrowForwardIcon, close: CloseIcon, plus: AddIcon, minus: RemoveIcon, check: CheckIcon, shield: ShieldIcon, user: PersonIcon, home: HomeRoundedIcon, info: InfoOutlinedIcon, orders: ReceiptIcon, heart: FavoriteIcon, favorite: FavoriteRoundedIcon, star: StarIcon, location: LocationIcon, payment: CreditCardIcon, returns: ReplayIcon, bell: NotificationsIcon, settings: SettingsIcon, help: HelpIcon, logout: LogoutIcon };
+const iconComponents = { bag: ShoppingBagIcon, search: SearchIcon, shop: StorefrontOutlinedIcon, arrow: ArrowForwardIcon, close: CloseIcon, plus: AddIcon, minus: RemoveIcon, check: CheckIcon, shield: ShieldIcon, user: PersonIcon, home: HomeRoundedIcon, info: InfoOutlinedIcon, orders: ReceiptIcon, heart: FavoriteIcon, favorite: FavoriteRoundedIcon, star: StarIcon, location: LocationIcon, payment: CreditCardIcon, bell: NotificationsIcon, settings: SettingsIcon, help: HelpIcon, logout: LogoutIcon };
 
 function Icon({ name, size = 20 }) {
   const IconComponent = iconComponents[name] || HelpIcon;

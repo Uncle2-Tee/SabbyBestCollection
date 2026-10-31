@@ -9,7 +9,6 @@ import FavoriteIcon from "@mui/icons-material/FavoriteBorder";
 import ShoppingBagIcon from "@mui/icons-material/ShoppingBagOutlined";
 import LocationIcon from "@mui/icons-material/LocationOnOutlined";
 import CreditCardIcon from "@mui/icons-material/CreditCardOutlined";
-import ReplayIcon from "@mui/icons-material/ReplayOutlined";
 import NotificationsIcon from "@mui/icons-material/NotificationsNone";
 import SettingsIcon from "@mui/icons-material/SettingsOutlined";
 import LockIcon from "@mui/icons-material/LockOutlined";
@@ -33,11 +32,9 @@ const accountSections = [
   { id: "cart", label: "Cart", icon: ShoppingBagIcon },
   { id: "addresses", label: "Delivery Addresses", icon: LocationIcon },
   { id: "payments", label: "Payment Methods", icon: CreditCardIcon },
-  { id: "returns", label: "Returns & Refunds", icon: ReplayIcon },
   { id: "notifications", label: "Notifications", icon: NotificationsIcon },
   { id: "settings", label: "Settings", icon: SettingsIcon },
   { id: "support", label: "Help & Support", icon: HelpIcon },
-  { id: "logout", label: "Logout", icon: LogoutIcon },
 ];
 
 async function apiJson(response) {
@@ -306,7 +303,6 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
         setAuthMode("signin");
         setPasswordOnlyLogin(false);
         setForm((current) => ({ ...current, identifier: username, username: "", phone: "", password: "", confirmPassword: "", verificationCode: "" }));
-        setMessage("Account created. Log in with your username or phone number.");
       } else if (currentAuthMode === "verify") {
         await verifyCustomerContact(form.identifier.trim(), form.verificationCode.trim());
         setAuthMode("set-password");
@@ -547,9 +543,8 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
     <div className="account-layout">
       <nav className="account-sidebar" aria-label="Account sections">
         {accountSections.map(({ id, label, icon: SectionIcon }) => (
-          <button key={id} className={`${activeSection === id ? "active" : ""}${id === "logout" ? " account-logout-button" : ""}`} onClick={() => {
-            if (id === "logout") signOut();
-            else if (id === "cart") onOpenCart();
+          <button key={id} className={activeSection === id ? "active" : ""} onClick={() => {
+            if (id === "cart") onOpenCart();
             else onSelectSection(id);
           }}>
             <SectionIcon sx={{ fontSize: 20 }} aria-hidden="true" />
@@ -576,10 +571,9 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
           <div className="account-section-heading wishlist-heading"><div><p className="eyebrow">Saved for later</p><h2>My Wishlist <span aria-hidden="true">♥</span></h2></div><span>{wishlistProducts.length} items</span></div>
           {wishlistProducts.length ? <div className="wishlist-grid">{wishlistProducts.map((product) => <article className="wishlist-card" key={product.id}><div className="wishlist-card-image" style={{ backgroundImage: `url(${product.image})` }} role="img" aria-label={product.name}><button className="wishlist-remove" onClick={() => onRemoveFromWishlist(product)} aria-label={`Remove ${product.name} from wishlist`}>×</button>{product.badge && <span className="product-badge">{product.badge}</span>}</div><div className="wishlist-card-info"><p className="eyebrow">{product.category}</p><h3>{product.name}</h3><p className="wishlist-card-price">{new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS" }).format(product.price)}</p><button className="add-to-cart-button" onClick={() => onAddToCart(product)}>Add to cart</button></div></article>)}</div> : <div className="wishlist-empty"><h3>Your wishlist is empty</h3><p>Save products you love and find them here later.</p></div>}
         </section>}
-        {activeSection === "profile" && <div className="account-empty"><p className="eyebrow">Your details</p><h2>My Profile</h2><p><strong>Name</strong><br />{fullName}</p>{session.user.username && <p><strong>Username</strong><br />{session.user.username}</p>}{session.user.phone && <p><strong>Phone number</strong><br />{session.user.phone}</p>}<p>Your account details are securely managed in the store database.</p></div>}
+        {activeSection === "profile" && <div className="account-empty"><p className="eyebrow">Your details</p><h2>My Profile</h2><p><strong>Name</strong><br />{fullName}</p>{session.user.username && <p><strong>Username</strong><br />{session.user.username}</p>}{session.user.phone && <p><strong>Phone number</strong><br />{session.user.phone}</p>}</div>}
         {activeSection === "addresses" && <section className="customer-account-tools"><div className="account-section-heading"><div><p className="eyebrow">Delivery details</p><h2>Delivery Addresses</h2></div></div><article className="account-tool-card account-settings-form"><p className="account-tool-muted">These details are saved automatically and can be edited anytime.</p><label htmlFor="account-delivery-address">Delivery address<textarea id="account-delivery-address" autoComplete="street-address" minLength={8} value={accountSettings.deliveryAddress} onChange={(event) => { setDeliverySaveStatus(""); setAccountSettings((current) => ({ ...current, deliveryAddress: event.target.value })); }} placeholder="House number, street, landmark" /></label><label htmlFor="account-delivery-city">City / town<input id="account-delivery-city" autoComplete="address-level2" minLength={2} value={accountSettings.deliveryCity} onChange={(event) => { setDeliverySaveStatus(""); setAccountSettings((current) => ({ ...current, deliveryCity: event.target.value })); }} placeholder="e.g. Accra" /></label><p className="account-profile-save-status" role="status" aria-live="polite">{deliverySaveStatus || "Your saved details will be used at checkout."}</p></article></section>}
         {activeSection === "payments" && <div className="account-empty"><p className="eyebrow">Secure payments</p><h2>Payment Methods</h2><p>Payment is currently handled through Mobile Money at checkout. Payment card details are not stored in your account.</p></div>}
-        {activeSection === "returns" && <div className="account-empty account-help-card"><p className="eyebrow">Order support</p><h2>Returns &amp; Refunds</h2><p>For help with a return or refund, contact our support team with your order number.</p><div className="account-help-actions">{whatsappHref ? <a className="account-help-whatsapp" href={whatsappHref} target="_blank" rel="noreferrer"><WhatsAppIcon aria-hidden="true" /> WhatsApp</a> : <span className="account-help-whatsapp contact-unavailable"><WhatsAppIcon aria-hidden="true" /> WhatsApp</span>}</div></div>}
         {activeSection === "notifications" && <section className="customer-account-tools">
           <div className="account-section-heading"><div><p className="eyebrow">Stay in the loop</p><h2>Notifications</h2></div></div>
           <article className="account-tool-card">

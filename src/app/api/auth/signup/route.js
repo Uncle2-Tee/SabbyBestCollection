@@ -24,7 +24,7 @@ function isDatabaseConfigurationError(error) {
     || error?.name === "PrismaClientInitializationError";
 }
 
-async function createCustomerProfile({ username, phone, passwordHash }) {
+async function createCustomerProfile({ username, phone, password }) {
   for (let attempt = 0; ; attempt += 1) {
     try {
       const existing = await prisma.customerProfile.findFirst({
@@ -33,6 +33,7 @@ async function createCustomerProfile({ username, phone, passwordHash }) {
       });
       if (existing) return "existing";
 
+      const passwordHash = await hashPassword(password);
       await prisma.customerProfile.create({
         data: { username, phone, passwordHash },
       });
@@ -63,10 +64,8 @@ export async function POST(request) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Account creation is unavailable because the production database is not configured." }, { status: 503 });
   }
-
   try {
-    const passwordHash = await hashPassword(password);
-    const result = await createCustomerProfile({ username, phone: contact.phone, passwordHash });
+    const result = await createCustomerProfile({ username, phone: contact.phone, password });
     if (result === "existing") {
       return NextResponse.json({ error: "That username or phone number is already in use. Log in instead.", existingAccount: true }, { status: 409 });
     }
