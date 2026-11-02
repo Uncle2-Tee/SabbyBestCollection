@@ -70,9 +70,8 @@
 .catalog-remove-button { margin-left:4px; color:#944a3b; border:0; background:transparent; font-size:9px; letter-spacing:.07em; text-decoration:underline; text-underline-offset:3px; text-transform:uppercase; }
 .orders-panel { max-width:1160px; margin:0 auto 24px; padding:30px 32px; border:1px solid var(--atelier-line); background:var(--atelier-paper); }
 .orders-panel-heading { display:flex; align-items:center; justify-content:space-between; gap:24px; padding-bottom:21px; border-bottom:1px solid var(--atelier-line); }
-.orders-panel-heading .atelier-kicker { margin:0 0 8px; }
-.orders-panel-heading h2 { margin:0; font:400 31px/1 Georgia,serif; letter-spacing:-.04em; }
-.orders-panel-heading>div:first-child>p:last-child { margin:9px 0 0; color:var(--atelier-muted); font-size:12px; }
+.orders-panel-heading .atelier-kicker { display:block; margin:0 0 8px; }
+.orders-panel-heading strong { display:block; margin:0; font:400 31px/1 Georgia,serif; letter-spacing:-.04em; }
 .orders-panel-description { margin:0 0 15px; color:var(--atelier-muted); font-size:12px; }
 .orders-count { display:inline-grid; min-width:25px; height:25px; margin-left:5px; padding:0 6px; place-items:center; border-radius:999px; background:#eee8eb; color:#5a3b4f; font:600 11px Arial,Helvetica,sans-serif; vertical-align:middle; }
 .orders-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
@@ -118,7 +117,7 @@
   .homepage-images-panel { padding:0 17px; }
   .homepage-images-summary { min-height:74px; }
   .homepage-images-summary strong { font-size:22px; }
-  .homepage-images-summary-note { font-size:9px; }
+  .homepage-images-summary-note { flex-shrink:0; margin-left:auto; font-size:9px; }
   .homepage-image-grid { grid-template-columns:1fr; }
   .homepage-image-preview { height:112px; }
   .homepage-image-details span { min-height:0; }
@@ -128,8 +127,8 @@
   .listing-dropdown-note { font-size:9px; }
   .catalog-dropdown .catalog-list { margin:0 8px; }
   .orders-panel { padding:21px 18px; }
-  .orders-panel-heading { align-items:flex-start; flex-direction:column; gap:14px; }
-  .orders-panel-heading h2 { font-size:28px; }
+  .orders-panel-heading { align-items:flex-start; flex-direction:row; justify-content:space-between; gap:14px; }
+  .orders-panel-heading strong { font-size:28px; }
   .orders-toolbar { width:100%; }
   .orders-toolbar button,.notification-enabled { min-height:36px; }
   .admin-order-card { padding:14px; }
