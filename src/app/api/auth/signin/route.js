@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createCustomerSession, customerSessionCookieOptions, CUSTOMER_SESSION_COOKIE, hashPassword, publicCustomer, verifyPassword } from "../../../../lib/customer-auth";
 import { normalizeCustomerIdentifier } from "../../../../lib/customer-identity";
+import { clearAccountLoginFailures, getAccountThrottleKey, getClientIp, getCustomerProfileThrottleKey, getLoginThrottle, recordLoginFailure, retryAfterSeconds } from "../../../../lib/customer-auth-throttle";
 import { prisma } from "../../../../lib/prisma";
 
 export const runtime = "nodejs";
@@ -25,38 +26,78 @@ function isTransientDatabaseError(error) {
 }
 
 export async function POST(request) {
+  const ip = getClientIp(request);
+  try {
+    const throttle = await getLoginThrottle({ accountKey: null, ip });
+    if (throttle) {
+      return NextResponse.json(
+        { error: "Too many sign-in attempts. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(retryAfterSeconds(throttle.blockedUntil)) } },
+      );
+    }
+  } catch (error) {
+    console.error("Could not check IP sign-in throttle:", error);
+    return NextResponse.json({ error: "Sign-in is temporarily unavailable. Please try again in a moment." }, { status: 503 });
+  }
+
   let body;
   try {
     body = await request.json();
   } catch {
+    try {
+      await recordLoginFailure({ accountKey: null, ip });
+    } catch (error) {
+      console.error("Could not record malformed sign-in attempt:", error);
+    }
     return NextResponse.json({ error: "Invalid sign-in details." }, { status: 400 });
   }
 
   const password = typeof body?.password === "string" ? body.password : "";
   const identifier = typeof body?.identifier === "string" ? body.identifier.trim().toLowerCase() : "";
   if (!password || password.length > 128) {
+    try {
+      await recordLoginFailure({ accountKey: null, ip });
+    } catch (error) {
+      console.error("Could not record invalid sign-in attempt:", error);
+    }
     return NextResponse.json({ error: "Enter your username or phone number and password." }, { status: 400 });
   }
 
   const contact = normalizeCustomerIdentifier(identifier);
   const isUsername = !contact && /^[a-z0-9][a-z0-9._-]{2,29}$/.test(identifier);
   if (!isUsername && !contact) {
+    try {
+      await recordLoginFailure({ accountKey: null, ip });
+    } catch (error) {
+      console.error("Could not record invalid sign-in identifier:", error);
+    }
     return NextResponse.json({ error: "Username/phone or password is incorrect." }, { status: 401 });
   }
+  const accountKey = getAccountThrottleKey(identifier, contact, isUsername);
 
   for (let attempt = 0; ; attempt += 1) {
     try {
       const profile = isUsername
         ? await prisma.customerProfile.findUnique({ where: { username: identifier }, select: customerSignInSelect })
         : await prisma.customerProfile.findUnique({ where: { phone: contact.phone }, select: customerSignInSelect });
+      const profileAccountKey = getCustomerProfileThrottleKey(profile?.id);
+      const throttle = await getLoginThrottle({ accountKey, accountKeys: [profileAccountKey], ip });
+      if (throttle) {
+        return NextResponse.json(
+          { error: "Too many sign-in attempts. Please try again later." },
+          { status: 429, headers: { "Retry-After": String(retryAfterSeconds(throttle.blockedUntil)) } },
+        );
+      }
       const passwordMatches = profile
         ? await verifyPassword(password, profile.passwordHash)
         : (await hashPassword(password), false);
       if (!profile || !passwordMatches) {
+        await recordLoginFailure({ accountKey, accountKeys: [profileAccountKey], ip });
         return NextResponse.json({ error: "Username/phone or password is incorrect." }, { status: 401 });
       }
 
       const session = await createCustomerSession(profile);
+      await clearAccountLoginFailures(accountKey, [profileAccountKey]);
       const response = NextResponse.json({ session: { user: publicCustomer(profile) } });
       response.cookies.set(CUSTOMER_SESSION_COOKIE, session.token, customerSessionCookieOptions);
       return response;

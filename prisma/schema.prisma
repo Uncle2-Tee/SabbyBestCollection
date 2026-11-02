@@ -97,6 +97,17 @@ model CustomerSession {
   @@map("customer_sessions")
 }
 
+model CustomerAuthThrottle {
+  key              String   @id
+  failedAttempts   Int      @default(0) @map("failed_attempts")
+  windowStartedAt  DateTime @default(now()) @map("window_started_at") @db.Timestamptz(6)
+  blockedUntil     DateTime? @map("blocked_until") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([blockedUntil])
+  @@map("customer_auth_throttles")
+}
+
 model ProductImage {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   filename  String
