@@ -16,7 +16,7 @@
 .dashboard-overview-grid > .homepage-images-panel,.dashboard-overview-grid > .orders-panel { width:100%; min-width:0; max-width:none; margin:0; }
 .dashboard-overview-grid > .homepage-images-panel { padding-right:22px; padding-left:22px; }
 .dashboard-overview-grid > .orders-panel { padding:24px; }
-.admin-dropdown-card > summary { cursor:pointer; list-style:none; }
+.admin-dropdown-card > summary { cursor:pointer; list-style:none; border-bottom:1px solid var(--atelier-rose); }
 .admin-dropdown-card > summary::-webkit-details-marker { display:none; }
 .admin-dropdown-chevron { display:inline-block; font-size:17px; line-height:1; transition:transform .2s ease; }
 .admin-dropdown-card[open] .admin-dropdown-chevron { transform:rotate(180deg); }
@@ -410,7 +410,7 @@
 
 .atelier-shell,
 .dashboard-shell { background:#f7f6f3; }
-.dashboard-header { border-bottom-color:var(--atelier-line); background:rgba(255,255,255,.96); }
+.dashboard-header { border-top:1px solid #f47732; border-bottom-color:var(--atelier-line); background:rgba(255,255,255,.96); }
 .login-card,
 .catalog-form,
 .catalog-panel,
@@ -449,3 +449,5 @@
 .catalog-price-editor button { color:#fff; }
 .catalog-item .catalog-name-editor button:hover,
 .catalog-price-editor button:hover { color:#fff; }
+.dashboard-overview-grid > .homepage-images-panel > .homepage-images-summary,
+.dashboard-overview-grid > .orders-panel > .orders-panel-heading { border-bottom:1px solid #f47732; }

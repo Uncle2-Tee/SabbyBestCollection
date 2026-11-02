@@ -177,6 +177,7 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
 .page-home .hero-copy { max-width:620px; align-self:start; padding:clamp(24px,3vh,40px) 0 0; }
 .page-home .hero-copy .eyebrow { margin-bottom:19px; }
 .page-home .hero h1 { max-width:640px; font:700 clamp(50px,5.2vw,76px)/.98 Arial,Helvetica,sans-serif; letter-spacing:0; }
+.page-home .hero h1 .hero-heading-line { color:#fff; text-shadow:0 2px 12px rgba(0,0,0,.5); }
 .page-home .hero h1 em { color:#39483d; font-weight:500; }
 .page-home .hero-text { max-width:440px; margin:23px 0 0; color:#59625c; font-family:"Trebuchet MS",Arial,Helvetica,sans-serif; font-size:15px; line-height:1.65; }
 .page-home .hero-actions { gap:12px; margin-top:27px; }
@@ -621,6 +622,7 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
 .customer-order-heading>b { font:400 20px Georgia,serif; }
 .customer-order-card ul { display:grid; gap:7px; margin:17px 0; padding-left:18px; color:#48564d; font-size:13px; }
 .customer-order-payment { margin:0; padding-top:13px; border-top:1px solid var(--line); }
+.customer-order-pay { margin-top:10px; }
 
 @media (max-width:760px) {
   .product-modal {

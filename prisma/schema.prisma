@@ -47,8 +47,24 @@ model Order {
   phone           String
   shippingAddress String   @map("shipping_address")
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  paymentAttempts PaymentAttempt[]
 
   @@map("orders")
+}
+
+model PaymentAttempt {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId   String   @map("order_id") @db.Uuid
+  reference String   @unique
+  amount    Int
+  currency  String   @default("GHS")
+  status    String   @default("initializing")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+  @@map("payment_attempts")
 }
 
 model CustomerProfile {

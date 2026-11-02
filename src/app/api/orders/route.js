@@ -47,10 +47,11 @@ export async function POST(request) {
   } catch {
     return NextResponse.json({ error: "Invalid order details." }, { status: 400 });
   }
-  const { items, customerName, phone, shippingAddress, city } = body || {};
+  const { items, customerName, customerEmail, phone, shippingAddress, city } = body || {};
   if (!Array.isArray(items) || items.length < 1 || items.length > 20
     || items.some((item) => !item || typeof item.productId !== "string" || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 20)
     || typeof customerName !== "string" || customerName.trim().length < 2 || customerName.trim().length > 120
+    || typeof customerEmail !== "string" || customerEmail.trim().length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())
     || typeof phone !== "string" || phone.trim().length < 7 || phone.trim().length > 30
     || typeof shippingAddress !== "string" || shippingAddress.trim().length < 8
     || typeof city !== "string" || city.trim().length < 2 || city.trim().length > 120) {
@@ -94,7 +95,7 @@ export async function POST(request) {
         shipping,
         total: Number((subtotal + shipping).toFixed(2)),
         customerName: customerName.trim(),
-        customerEmail: user.email || null,
+        customerEmail: customerEmail.trim().toLowerCase(),
         phone: phone.trim(),
         shippingAddress: `${shippingAddress.trim()}\nCity / town: ${city.trim()}`,
       },

@@ -51,7 +51,7 @@ function formatDate(value) {
   return new Intl.DateTimeFormat("en-GH", { dateStyle: "medium" }).format(new Date(value));
 }
 
-export default function CustomerAccount({ session, onSignInSuccess, onAccountUpdated, activeSection, onSelectSection, onBackToSections, mobileSectionOpen, wishlistProducts, onAddToCart, onRemoveFromWishlist, onOpenCart, cartCount, refreshKey }) {
+export default function CustomerAccount({ session, onSignInSuccess, onAccountUpdated, onPayOrder, activeSection, onSelectSection, onBackToSections, mobileSectionOpen, wishlistProducts, onAddToCart, onRemoveFromWishlist, onOpenCart, cartCount, refreshKey }) {
   const [authMode, setAuthMode] = useState("signin");
   const [form, setForm] = useState({ identifier: "", username: "", phone: "", password: "", confirmPassword: "", verificationCode: "" });
   const [showPassword, setShowPassword] = useState(false);
@@ -564,7 +564,8 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
           {(orders || []).map((order) => <article className="customer-order-card" key={order.id}>
             <div className="customer-order-heading"><div><span>Placed {formatDate(order.created_at)}</span><strong>{order.status.replaceAll("_", " ")}</strong></div><b>{new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS" }).format(Number(order.total))}</b></div>
             <ul>{order.items.map((item) => <li key={`${order.id}-${item.product_id}`}>{item.name} × {item.quantity}</li>)}</ul>
-            <p className="customer-order-payment">Mobile Money · Awaiting manual payment verification</p>
+            <p className="customer-order-payment">{order.payment_method === "paystack" ? order.status === "payment_review" ? "Paystack payment verified · Awaiting order processing" : "Paystack payment is awaiting completion" : "Awaiting manual payment verification"}</p>
+            {order.status === "awaiting_payment" && order.payment_method === "paystack" && <button className="account-text-action customer-order-pay" type="button" onClick={() => onPayOrder(order)}>Pay now</button>}
           </article>)}
         </section>}
         {activeSection === "wishlist" && <section>
@@ -573,7 +574,7 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
         </section>}
         {activeSection === "profile" && <div className="account-empty"><p className="eyebrow">Your details</p><h2>My Profile</h2><p><strong>Name</strong><br />{fullName}</p>{session.user.username && <p><strong>Username</strong><br />{session.user.username}</p>}{session.user.phone && <p><strong>Phone number</strong><br />{session.user.phone}</p>}</div>}
         {activeSection === "addresses" && <section className="customer-account-tools"><div className="account-section-heading"><div><p className="eyebrow">Delivery details</p><h2>Delivery Addresses</h2></div></div><article className="account-tool-card account-settings-form"><p className="account-tool-muted">These details are saved automatically and can be edited anytime.</p><label htmlFor="account-delivery-address">Delivery address<textarea id="account-delivery-address" autoComplete="street-address" minLength={8} value={accountSettings.deliveryAddress} onChange={(event) => { setDeliverySaveStatus(""); setAccountSettings((current) => ({ ...current, deliveryAddress: event.target.value })); }} placeholder="House number, street, landmark" /></label><label htmlFor="account-delivery-city">City / town<input id="account-delivery-city" autoComplete="address-level2" minLength={2} value={accountSettings.deliveryCity} onChange={(event) => { setDeliverySaveStatus(""); setAccountSettings((current) => ({ ...current, deliveryCity: event.target.value })); }} placeholder="e.g. Accra" /></label><p className="account-profile-save-status" role="status" aria-live="polite">{deliverySaveStatus || "Your saved details will be used at checkout."}</p></article></section>}
-        {activeSection === "payments" && <div className="account-empty"><p className="eyebrow">Secure payments</p><h2>Payment Methods</h2><p>Payment is currently handled through Mobile Money at checkout. Payment card details are not stored in your account.</p></div>}
+        {activeSection === "payments" && <div className="account-empty"><p className="eyebrow">Secure payments</p><h2>Payment Methods</h2><p>Payments are processed securely through Paystack. Payment card details are not stored in your account.</p></div>}
         {activeSection === "notifications" && <section className="customer-account-tools">
           <div className="account-section-heading"><div><p className="eyebrow">Stay in the loop</p><h2>Notifications</h2></div></div>
           <article className="account-tool-card">
