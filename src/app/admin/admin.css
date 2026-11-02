@@ -16,6 +16,12 @@
 .dashboard-overview-grid > .homepage-images-panel,.dashboard-overview-grid > .orders-panel { width:100%; min-width:0; max-width:none; margin:0; }
 .dashboard-overview-grid > .homepage-images-panel { padding-right:22px; padding-left:22px; }
 .dashboard-overview-grid > .orders-panel { padding:24px; }
+.admin-dropdown-card > summary { cursor:pointer; list-style:none; }
+.admin-dropdown-card > summary::-webkit-details-marker { display:none; }
+.admin-dropdown-chevron { display:inline-block; font-size:17px; line-height:1; transition:transform .2s ease; }
+.admin-dropdown-card[open] .admin-dropdown-chevron { transform:rotate(180deg); }
+.admin-dropdown-summary { align-items:flex-start; }
+.admin-dropdown-content { padding-top:18px; }
 @media (max-width:780px) { .login-card { padding:42px 27px 32px; }.dashboard-header { padding:0 21px; }.secure-status { display:none; }.dashboard-heading { padding:51px 21px 33px; }.dashboard-grid { grid-template-columns:1fr; padding:0 13px; gap:14px; }.catalog-form,.catalog-panel { padding:22px; }.catalog-item { grid-template-columns:48px minmax(0,1fr) auto; }.catalog-image { width:48px; height:48px; }.catalog-item button { grid-column:2 / -1; justify-self:start; margin:7px 0 0; }.catalog-item { padding:11px 0; }.field-row { grid-template-columns:1fr; gap:0; } }
 .database-warning { max-width:1096px; margin:0 auto 22px; padding:14px 16px; border:1px solid #bd8d65; background:#faf2e5; color:#694b2e; font-size:13px; line-height:1.5; }
 .homepage-images-panel { max-width:1096px; margin:0 auto 24px; padding:0 26px; border-color:#eed6df; background:linear-gradient(135deg,#fff5f8,#fffaf7 76%); }
@@ -67,6 +73,7 @@
 .orders-panel-heading .atelier-kicker { margin:0 0 8px; }
 .orders-panel-heading h2 { margin:0; font:400 31px/1 Georgia,serif; letter-spacing:-.04em; }
 .orders-panel-heading>div:first-child>p:last-child { margin:9px 0 0; color:var(--atelier-muted); font-size:12px; }
+.orders-panel-description { margin:0 0 15px; color:var(--atelier-muted); font-size:12px; }
 .orders-count { display:inline-grid; min-width:25px; height:25px; margin-left:5px; padding:0 6px; place-items:center; border-radius:999px; background:#eee8eb; color:#5a3b4f; font:600 11px Arial,Helvetica,sans-serif; vertical-align:middle; }
 .orders-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
 .orders-toolbar button,.notification-enabled { min-height:38px; display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:0 12px; border:1px solid var(--atelier-line); background:#fff; color:var(--atelier-ink); font-size:10px; font-weight:600; }

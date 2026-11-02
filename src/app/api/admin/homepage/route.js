@@ -22,6 +22,7 @@ export async function GET() {
         heroEditorial: settings.heroEditorial,
         heroLookbook: settings.heroLookbook,
         heroDetail: settings.heroDetail,
+        heroShoe: settings.heroShoe || defaultHomepageImages.heroShoe,
       } : defaultHomepageImages,
     });
   } catch (error) {
@@ -52,11 +53,13 @@ export async function PUT(request) {
         heroEditorial: images.heroEditorial,
         heroLookbook: images.heroLookbook,
         heroDetail: images.heroDetail,
+        heroShoe: images.heroShoe,
       },
       update: {
         heroEditorial: images.heroEditorial,
         heroLookbook: images.heroLookbook,
         heroDetail: images.heroDetail,
+        heroShoe: images.heroShoe,
       },
     });
     return NextResponse.json({
@@ -64,6 +67,7 @@ export async function PUT(request) {
         heroEditorial: settings.heroEditorial,
         heroLookbook: settings.heroLookbook,
         heroDetail: settings.heroDetail,
+        heroShoe: settings.heroShoe,
       },
     });
   } catch (error) {

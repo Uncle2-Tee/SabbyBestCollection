@@ -17,9 +17,9 @@ const money = new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS
 const emptyForm = { name: "", category: "Dresses", price: "", size: "", image: "", description: "", howToUse: defaultProductUsage, caution: defaultProductCaution };
 const orderStatuses = ["awaiting_payment", "payment_review", "processing", "shipped", "delivered", "cancelled"];
 const homepageImageFields = [
-  { key: "heroEditorial", label: "Hero background", description: "Fills the home-page hero behind the text and supporting images." },
   { key: "heroLookbook", label: "Lookbook overlay", description: "The tilted supporting image positioned on the left." },
   { key: "heroDetail", label: "Detail overlay", description: "The tilted supporting image positioned on the right." },
+  { key: "heroShoe", label: "Sneakers overlay", description: "The supporting sneakers image positioned in the upper right." },
 ];
 
 function timeBasedGreeting() {
@@ -412,13 +412,13 @@ export default function AdminDashboard({ username }) {
     <section className="dashboard-heading"><p className="atelier-kicker">Store administration</p><h1>{greeting}</h1><p>Keep your collection polished, current, and ready to shop.</p></section>
     {message && !databaseReady && <p className="database-warning" role="alert">{message} Check DATABASE_URL in your environment and run `npx prisma db push` if the schema has not been applied.</p>}
     <section className="dashboard-overview-grid" aria-label="Storefront images and customer activity">
-      <section className="homepage-images-panel" aria-labelledby="homepage-images-heading">
-        <div className="homepage-images-summary">
+      <details className="homepage-images-panel admin-dropdown-card" open>
+        <summary className="homepage-images-summary">
           <span><span className="atelier-kicker">Storefront</span><strong id="homepage-images-heading">Home page images</strong></span>
-          <span className="homepage-images-summary-note">Manage hero photos</span>
-        </div>
+          <span className="homepage-images-summary-note">Manage hero photos <span className="admin-dropdown-chevron" aria-hidden="true">⌄</span></span>
+        </summary>
         <div className="homepage-images-content">
-          <p className="homepage-images-description">Choose the full-bleed hero background and two supporting overlay images. Changes appear on the storefront after you save.</p>
+          <p className="homepage-images-description">Choose the three supporting hero images. The full-bleed home background is permanent.</p>
           <div className="homepage-image-grid">{homepageImageFields.map(({ key, label, description }) => (
             <div className="homepage-image-card" key={key}>
               <div className="homepage-image-preview" role="img" aria-label={`${label} preview`} style={{ backgroundImage: `url("${homepageImages[key]}")` }} />
@@ -428,17 +428,20 @@ export default function AdminDashboard({ username }) {
           ))}</div>
           <button className="homepage-images-save" type="button" onClick={saveHomepageImages} disabled={!databaseReady || homepageImagesSaving || Boolean(homepageImageUploading)}>{homepageImagesSaving ? "Saving…" : "Save home page images"}</button>
         </div>
-      </section>
-      <section className="orders-panel" aria-labelledby="orders-heading">
-      <div className="orders-panel-heading">
-        <div><p className="atelier-kicker">Customer activity</p><h2 id="orders-heading">Orders <span className="orders-count">{orders.length}</span></h2><p>New orders are checked every 30 seconds while the dashboard is open.</p></div>
+      </details>
+      <details className="orders-panel admin-dropdown-card" open>
+      <summary className="orders-panel-heading admin-dropdown-summary">
+        <div><p className="atelier-kicker">Customer activity</p><h2 id="orders-heading">Orders <span className="orders-count">{orders.length}</span></h2></div>
+        <span className="admin-dropdown-chevron" aria-hidden="true">⌄</span>
+      </summary>
+      <div className="admin-dropdown-content">
+        <p className="orders-panel-description">New orders are checked every 30 seconds while the dashboard is open.</p>
         <div className="orders-toolbar">
           <button type="button" className="admin-refresh-button" onClick={() => setRefreshOrdersKey((key) => key + 1)} disabled={ordersLoading} aria-label="Refresh orders"><RefreshIcon fontSize="small" /> Refresh</button>
           {notificationPermission === "granted"
             ? <span className="notification-enabled"><NotificationsIcon fontSize="small" /> Alerts enabled</span>
             : <button type="button" className="admin-notification-button" onClick={enableOrderNotifications} disabled={notificationPermission === "unsupported"}><NotificationsIcon fontSize="small" /> Enable alerts</button>}
         </div>
-      </div>
       {newOrders.length > 0 && <div className="new-orders-alert" role="status"><div><strong>{newOrders.length === 1 ? "New order received" : `${newOrders.length} new orders received`}</strong><span>{newOrders[0].customer_name} · {money.format(Number(newOrders[0].total))}</span></div><button type="button" onClick={() => setNewOrders([])}>Mark as seen</button></div>}
       {orderMessage && <p className="orders-message" role="status">{orderMessage}</p>}
       {ordersError && <p className="database-warning orders-error" role="alert">{ordersError}</p>}
@@ -452,7 +455,8 @@ export default function AdminDashboard({ username }) {
           <div className="admin-order-bottom"><div><span>Delivery address & city / town</span><p>{order.shipping_address}</p><small>Payment: Mobile Money · {money.format(Number(order.total))}</small></div><label>Status<select aria-label={`Update status for order ${order.id.slice(0, 8)}`} value={order.status} onChange={(event) => updateOrderStatus(order, event.target.value)}>{orderStatuses.map((status) => <option key={status} value={status}>{status.replaceAll("_", " ")}</option>)}</select></label></div>
         </article>
       ))}</div>}
-      </section>
+      </div>
+      </details>
     </section>
     <section className="dashboard-grid">
       <form className="catalog-form" onSubmit={addProduct}>

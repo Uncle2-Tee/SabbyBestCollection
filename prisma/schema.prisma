@@ -123,6 +123,7 @@ model HomepageSettings {
   heroEditorial   String   @map("hero_editorial")
   heroLookbook    String   @map("hero_lookbook")
   heroDetail      String   @map("hero_detail")
+  heroShoe       String   @default("https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=900&q=85") @map("hero_shoe")
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("homepage_settings")

@@ -41,6 +41,7 @@ export async function GET() {
         heroEditorial: settings.heroEditorial,
         heroLookbook: settings.heroLookbook,
         heroDetail: settings.heroDetail,
+        heroShoe: settings.heroShoe || defaultHomepageImages.heroShoe,
       } : defaultHomepageImages,
     });
   } catch (error) {
