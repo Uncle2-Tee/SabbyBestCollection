@@ -58,7 +58,7 @@ export async function POST(request) {
   const contact = normalizeCustomerIdentifier(body?.phone);
   const password = typeof body?.password === "string" ? body.password : "";
   if (!/^[a-z0-9][a-z0-9._-]{2,29}$/.test(username) || !contact || contact.type !== "phone" || password.length < 8 || password.length > 128) {
-    return NextResponse.json({ error: "Enter a username, valid phone number, and password between 8 and 128 characters." }, { status: 400 });
+    return NextResponse.json({ error: "Enter a username, valid phone number, and password between 8 and 12 characters." }, { status: 400 });
   }
 
   if (!process.env.DATABASE_URL) {
