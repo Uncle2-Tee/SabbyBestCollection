@@ -370,7 +370,7 @@ export default function AdminDashboard({ username }) {
     <section className="dashboard-heading"><p className="atelier-kicker">Store administration</p><h1>{greeting}</h1><p>Keep your collection polished, current, and ready to shop.</p></section>
     {message && !databaseReady && <p className="database-warning" role="alert">{message} Check DATABASE_URL in your environment and run `npx prisma db push` if the schema has not been applied.</p>}
     <section className="dashboard-overview-grid" aria-label="Storefront images and customer activity">
-      <details className="homepage-images-panel admin-dropdown-card" open>
+      <details className="homepage-images-panel admin-dropdown-card">
         <summary className="homepage-images-summary">
           <span><span className="atelier-kicker">Storefront</span><strong id="homepage-images-heading">Home page images</strong></span>
           <span className="homepage-images-summary-note">Manage hero photos <span className="admin-dropdown-chevron" aria-hidden="true">⌄</span></span>
@@ -387,7 +387,7 @@ export default function AdminDashboard({ username }) {
           <button className="homepage-images-save" type="button" onClick={saveHomepageImages} disabled={!databaseReady || homepageImagesSaving || Boolean(homepageImageUploading)}>{homepageImagesSaving ? "Saving…" : "Save home page images"}</button>
         </div>
       </details>
-      <details className="orders-panel admin-dropdown-card" open>
+      <details className="orders-panel admin-dropdown-card">
       <summary className="orders-panel-heading admin-dropdown-summary">
         <span className="orders-panel-heading-copy"><span className="atelier-kicker">Customer activity</span><strong id="orders-heading">Orders <span className="orders-count">{orders.length}</span></strong></span>
         <span className="admin-dropdown-chevron" aria-hidden="true">⌄</span>
