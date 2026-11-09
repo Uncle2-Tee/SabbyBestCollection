@@ -12,6 +12,7 @@ import VisibilityOffIcon from "@mui/icons-material/VisibilityOffOutlined";
 import { defaultProductCaution, defaultProductUsage, productCategories } from "../../lib/catalog";
 import { notifyCustomerOrderUpdate } from "../../lib/customer-order-updates";
 import { defaultHomepageImages } from "../../lib/homepage-images";
+import { notifyProductCatalogUpdate } from "../../lib/product-catalog-updates";
 
 const money = new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS", minimumFractionDigits: 2 });
 const emptyForm = { name: "", category: "Dresses", price: "", size: "", image: "", description: "", howToUse: defaultProductUsage, caution: defaultProductCaution };
@@ -199,6 +200,7 @@ export default function AdminDashboard({ username }) {
     try {
       const { product: saved } = await readApiResponse(await fetch("/api/admin/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product }) }));
       setProducts((current) => [saved, ...current]);
+      notifyProductCatalogUpdate();
       setForm(emptyForm);
       setMessage(`${saved.name} has been published.`);
     } catch (error) { setMessage(error.message); }
@@ -255,6 +257,7 @@ export default function AdminDashboard({ username }) {
     try {
       await readApiResponse(await fetch(`/api/admin/products?id=${encodeURIComponent(product.id)}`, { method: "DELETE" }));
       setProducts((current) => current.filter((item) => item.id !== product.id));
+      notifyProductCatalogUpdate();
       setMessage(`${product.name} has been removed.`);
     } catch (error) { setMessage(error.message); }
   }
@@ -269,6 +272,7 @@ export default function AdminDashboard({ username }) {
     try {
       const { product: saved } = await readApiResponse(await fetch("/api/admin/products", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: product.id, price }) }));
       setProducts((current) => current.map((item) => item.id === product.id ? saved : item));
+      notifyProductCatalogUpdate();
       setPriceDrafts((current) => { const next = { ...current }; delete next[product.id]; return next; });
       setMessage(`${product.name} price updated.`);
     } catch (error) { setMessage(error.message); }
@@ -291,6 +295,7 @@ export default function AdminDashboard({ username }) {
         body: JSON.stringify({ id: product.id, name }),
       }));
       setProducts((current) => current.map((item) => item.id === product.id ? saved : item));
+      notifyProductCatalogUpdate();
       setNameDrafts((current) => { const next = { ...current }; delete next[product.id]; return next; });
       setMessage(`${saved.name} name updated.`);
     } catch (error) { setMessage(error.message); }

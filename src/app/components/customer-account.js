@@ -51,7 +51,7 @@ function formatDate(value) {
   return new Intl.DateTimeFormat("en-GH", { dateStyle: "medium" }).format(new Date(value));
 }
 
-export default function CustomerAccount({ session, onSignInSuccess, onAccountUpdated, onPayOrder, activeSection, onSelectSection, onBackToSections, mobileSectionOpen, wishlistProducts, onAddToCart, onRemoveFromWishlist, onOpenCart, cartCount, refreshKey }) {
+export default function CustomerAccount({ session, authChecked, authCheckError, onRetrySessionCheck, onSignInSuccess, onAccountUpdated, activeSection, onSelectSection, onBackToSections, mobileSectionOpen, wishlistProducts, onAddToCart, onRemoveFromWishlist, onOpenCart, cartCount, refreshKey }) {
   const [authMode, setAuthMode] = useState("signin");
   const [form, setForm] = useState({ identifier: "", username: "", phone: "", password: "", confirmPassword: "", verificationCode: "" });
   const [showPassword, setShowPassword] = useState(false);
@@ -460,6 +460,20 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
     setNotificationMessage("You’ll get a browser notification when an order status changes while you’re signed in.");
   }
 
+  if (!session?.user && !authChecked) {
+    return <section className="customer-account-root customer-auth-screen" aria-live="polite">
+      <div className="customer-auth-card"><h1>Restoring your account</h1><p className="customer-auth-intro">Checking your saved sign-in. Please wait a moment.</p></div>
+    </section>;
+  }
+  if (!session?.user && authCheckError) {
+    return <section className="customer-account-root customer-auth-screen">
+      <div className="customer-auth-card">
+        <h1>We couldn’t check your account</h1>
+        <p className="customer-auth-intro" role="alert">{authCheckError}</p>
+        <button className="primary-button wide" type="button" onClick={onRetrySessionCheck}>Try again</button>
+      </div>
+    </section>;
+  }
   if (!session?.user || authMode === "recovery") {
     const currentAuthMode = authMode;
     const isSigningUp = currentAuthMode === "signup";
@@ -565,7 +579,6 @@ export default function CustomerAccount({ session, onSignInSuccess, onAccountUpd
             <div className="customer-order-heading"><div><span>Placed {formatDate(order.created_at)}</span><strong>{order.status.replaceAll("_", " ")}</strong></div><b>{new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS" }).format(Number(order.total))}</b></div>
             <ul>{order.items.map((item) => <li key={`${order.id}-${item.product_id}`}>{item.name} × {item.quantity}</li>)}</ul>
             <p className="customer-order-payment">{order.payment_method === "paystack" ? order.status === "payment_review" ? "Paystack payment verified · Awaiting order processing" : "Paystack payment is awaiting completion" : "Awaiting manual payment verification"}</p>
-            {order.status === "awaiting_payment" && order.payment_method === "paystack" && <button className="account-text-action customer-order-pay" type="button" onClick={() => onPayOrder(order)}>Pay now</button>}
           </article>)}
         </section>}
         {activeSection === "wishlist" && <section>

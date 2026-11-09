@@ -622,7 +622,6 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
 .customer-order-heading>b { font:400 20px Georgia,serif; }
 .customer-order-card ul { display:grid; gap:7px; margin:17px 0; padding-left:18px; color:#48564d; font-size:13px; }
 .customer-order-payment { margin:0; padding-top:13px; border-top:1px solid var(--line); }
-.customer-order-pay { margin-top:10px; }
 
 @media (max-width:760px) {
   .product-modal {
@@ -748,19 +747,6 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
 .checkout-summary-totals .checkout-summary-total b { color:#332d31; font-size:22px; font-weight:700; }
 .checkout-form>.primary-button { min-height:52px; border-radius:0; }
 .checkout-form>small { color:#77716d; font-size:10px; line-height:1.5; }
-.payment-dialog { width:min(680px,calc(100% - 40px)); }
-.payment-order-summary { padding:clamp(20px,2.5vw,32px); border:1px solid #e8e1da; border-radius:24px; background:linear-gradient(145deg,#faf9f5 0%,#f3f1eb 100%); box-shadow:0 14px 32px rgba(67,54,43,.08); }
-.payment-order-summary .checkout-summary-heading { margin-bottom:18px; }
-.payment-provider-card { display:flex; align-items:center; gap:14px; margin-top:22px; padding:17px; border:1px solid #e2ddd8; background:#fff; }
-.payment-provider-card>svg { flex:0 0 auto; color:var(--plum); font-size:24px; }
-.payment-provider-card>div { display:grid; gap:4px; }
-.payment-provider-card>div strong { font-size:13px; }
-.payment-provider-card>div span,.payment-coming-soon { color:#77716d; font-size:11px; }
-.payment-coming-soon { margin-left:auto; white-space:nowrap; }
-.payment-pending-note { margin:16px 0; color:#655f5c; font-size:12px; line-height:1.6; }
-.payment-submit:disabled { opacity:.55; cursor:not-allowed; }
-.payment-orders-link { margin-top:18px; }
-
 @media (max-width:760px) {
   .checkout-dialog { width:calc(100% - 20px); max-height:calc(100dvh - 20px); padding:27px 20px 22px; }
   .checkout-heading { margin:0 38px 27px 0; }
@@ -769,7 +755,6 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
   .checkout-summary { grid-row:1; }
   .checkout-summary-item { grid-template-columns:54px minmax(0,1fr) auto; gap:11px; }
   .checkout-summary-image { width:54px; height:60px; }
-  .payment-dialog { width:calc(100% - 20px); }
 }
 .hero-note i { background:#a47791; }
 .showcase-card span,.feature-meta span { background:#f4e9ed; color:#68334f; }

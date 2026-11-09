@@ -28,6 +28,8 @@ import Image from "next/image";
 import { initialProducts, productCategories } from "../lib/catalog";
 import { defaultHomepageImages, permanentHomepageBackground } from "../lib/homepage-images";
 import CustomerAccount from "./components/customer-account";
+import { getCustomerSession } from "../lib/customer-auth-client";
+import { subscribeToProductCatalogUpdates } from "../lib/product-catalog-updates";
 import { publishCustomerSession, subscribeToCustomerSession } from "../lib/customer-session";
 import { whatsappHref } from "../lib/contact";
 
@@ -60,49 +62,6 @@ function AccountEmptyState({ title, message, action, onAction }) {
   return <div className="account-empty"><p className="eyebrow">Account</p><h2>{title}</h2><p>{message}</p>{action && <button className="account-text-action" onClick={onAction}>{action} <Icon name="arrow" size={15} /></button>}</div>;
 }
 
-function PaymentPage({ order, onClose }) {
-  const [paymentStarting, setPaymentStarting] = useState(false);
-  const [paymentError, setPaymentError] = useState("");
-
-  async function startPayment() {
-    if (paymentStarting) return;
-    setPaymentStarting(true);
-    setPaymentError("");
-    try {
-      const response = await fetch("/api/paystack/initialize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: order.id }),
-      });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.error || "Could not start Paystack checkout.");
-      const authorizationUrl = new URL(body.authorizationUrl);
-      if (authorizationUrl.protocol !== "https:" || authorizationUrl.hostname !== "checkout.paystack.com") {
-        throw new Error("Paystack returned an invalid checkout link.");
-      }
-      window.location.assign(authorizationUrl.toString());
-    } catch (error) {
-      setPaymentError(error.message || "Could not start Paystack checkout.");
-      setPaymentStarting(false);
-    }
-  }
-
-  return <><button className="modal-backdrop" onClick={onClose} aria-label="Close payment page" /><section className="checkout-modal checkout-dialog payment-dialog" role="dialog" aria-modal="true" aria-labelledby="payment-title">
-    <button className="icon-button close-modal" onClick={onClose} aria-label="Close payment page"><Icon name="close" /></button>
-    <header className="checkout-heading"><p className="eyebrow">Order {order.id.slice(0, 8).toUpperCase()}</p><h2 id="payment-title">Complete payment</h2></header>
-    <div className="payment-order-summary">
-      <div className="checkout-summary-heading"><h3>Order summary</h3><span>{order.items.length} {order.items.length === 1 ? "item" : "items"}</span></div>
-      <div className="checkout-summary-items">{order.items.map((item) => <article className="checkout-summary-item" key={item.product_id}><span className="checkout-summary-image" style={{ backgroundImage: `url(${item.image})` }} role="img" aria-label={item.name} /><div><h4>{item.name}</h4><p>Qty {item.quantity}</p></div><strong>{money.format(item.line_total)}</strong></article>)}</div>
-      <div className="checkout-summary-totals"><p><span>Subtotal</span><b>{money.format(order.subtotal)}</b></p><p><span>Delivery</span><b>{order.shipping ? money.format(order.shipping) : "Complimentary"}</b></p><p className="checkout-summary-total"><span>Total to pay</span><b>{money.format(order.total)}</b></p></div>
-    </div>
-    <div className="payment-provider-card"><CreditCardIcon aria-hidden="true" /><div><strong>Paystack</strong><span>Secure checkout hosted by Paystack</span></div></div>
-    <p className="payment-pending-note">You’ll be redirected to Paystack to complete payment. Your order is confirmed after payment is verified.</p>
-    {paymentError && <p className="form-error" role="alert">{paymentError}</p>}
-    <button className="primary-button wide payment-submit" type="button" onClick={startPayment} disabled={paymentStarting}>{paymentStarting ? "Connecting to Paystack…" : `Pay ${money.format(order.total)} with Paystack`}</button>
-    <button className="account-text-action payment-orders-link" type="button" onClick={onClose}>View my orders <Icon name="arrow" size={15} /></button>
-  </section></>;
-}
-
 export default function Home() {
   const [products, setProducts] = useState(initialProducts);
   const [homepageImages, setHomepageImages] = useState(defaultHomepageImages);
@@ -119,12 +78,11 @@ export default function Home() {
   const [mobileAccountSectionOpen, setMobileAccountSectionOpen] = useState(false);
   const [customerSession, setCustomerSession] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [authCheckError, setAuthCheckError] = useState("");
   const [ordersVersion, setOrdersVersion] = useState(0);
   const [productDetail, setProductDetail] = useState(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [checkoutPendingAuth, setCheckoutPendingAuth] = useState(false);
-  const [paymentOrder, setPaymentOrder] = useState(null);
-  const [showPayment, setShowPayment] = useState(false);
   const [checkoutDetails, setCheckoutDetails] = useState({ customerName: null, customerEmail: "", phone: "", shippingAddress: "", city: "" });
   const [checkoutError, setCheckoutError] = useState("");
   const [orderSubmitting, setOrderSubmitting] = useState(false);
@@ -134,6 +92,7 @@ export default function Home() {
   const customerStoreOwnerRef = useRef(customerStoreOwnerId);
   const cartRef = useRef(cart);
   const wishlistRef = useRef(wishlist);
+  const paymentReturn = useRef("");
   const customerStoreSaveQueue = useRef(Promise.resolve());
 
   useEffect(() => {
@@ -148,15 +107,17 @@ export default function Home() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       try {
-        const savedCart = JSON.parse(window.localStorage.getItem(guestCartStorageKey) || "[]");
-        if (Array.isArray(savedCart)) {
-          const validCart = savedCart.filter((item) => item
-            && typeof item.id === "string"
-            && Number.isFinite(item.price)
-            && Number.isInteger(item.quantity)
-            && item.quantity >= 1
-            && item.quantity <= 20);
-          setCart(validCart.slice(0, 20));
+        if (paymentReturn.current !== "success") {
+          const savedCart = JSON.parse(window.localStorage.getItem(guestCartStorageKey) || "[]");
+          if (Array.isArray(savedCart)) {
+            const validCart = savedCart.filter((item) => item
+              && typeof item.id === "string"
+              && Number.isFinite(item.price)
+              && Number.isInteger(item.quantity)
+              && item.quantity >= 1
+              && item.quantity <= 20);
+            setCart(validCart.slice(0, 20));
+          }
         }
       } catch (error) {
         console.error("Could not restore the cart:", error);
@@ -283,7 +244,7 @@ export default function Home() {
       } catch (error) {
         if (!cancelled && !reportedProductsError) {
           reportedProductsError = true;
-          console.error("Could not refresh the product catalogue:", error);
+          console.warn("Could not refresh the product catalogue:", error);
           setToast(error.message || "Shared catalogue unavailable; showing sample products.");
         }
       } finally {
@@ -291,6 +252,7 @@ export default function Home() {
       }
     }
     const refreshWhenVisible = () => { if (document.visibilityState === "visible") void refreshProducts(); };
+    const unsubscribeFromProductUpdates = subscribeToProductCatalogUpdates(refreshWhenVisible);
     void refreshProducts();
     const interval = window.setInterval(refreshWhenVisible, 30000);
     window.addEventListener("focus", refreshWhenVisible);
@@ -300,27 +262,27 @@ export default function Home() {
       window.clearInterval(interval);
       window.removeEventListener("focus", refreshWhenVisible);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
+      unsubscribeFromProductUpdates();
     };
   }, [authChecked]);
   useEffect(() => {
     let mounted = true;
     let receivedAuthEvent = false;
-    fetch("/api/auth/session", { cache: "no-store" }).then(async (response) => {
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.error || "Could not check your sign-in session.");
-      return body;
-    }).then(({ session }) => {
+    getCustomerSession().then((session) => {
       if (!mounted || receivedAuthEvent) return;
       setCustomerSession(session);
+      setAuthCheckError("");
       setAuthChecked(true);
     }).catch((error) => {
       if (!mounted || receivedAuthEvent) return;
       console.error("Could not load the customer session:", error);
+      setAuthCheckError(error.message || "Could not check your sign-in session.");
       setAuthChecked(true);
     });
     const unsubscribe = subscribeToCustomerSession((session) => {
       receivedAuthEvent = true;
       setCustomerSession(session);
+      setAuthCheckError("");
       setAuthChecked(true);
     });
     return () => {
@@ -328,21 +290,40 @@ export default function Home() {
       unsubscribe();
     };
   }, []);
+  const retryCustomerSessionCheck = useCallback(async () => {
+    setAuthChecked(false);
+    setAuthCheckError("");
+    try {
+      setCustomerSession(await getCustomerSession());
+    } catch (error) {
+      console.error("Could not restore the customer session:", error);
+      setAuthCheckError(error.message || "Could not check your sign-in session.");
+    } finally {
+      setAuthChecked(true);
+    }
+  }, []);
   useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(""), 2800); return () => window.clearTimeout(timer); }, [toast]);
   useEffect(() => {
     const url = new URL(window.location.href);
     const paymentResult = url.searchParams.get("payment");
+    paymentReturn.current = paymentResult || "";
     if (!paymentResult) return;
     const messages = {
-      success: "Payment received and verified. Your order is being reviewed.",
-      failed: "Payment was not completed. You can try again from your orders.",
+      success: "Payment received and verified. Your order is now in order history.",
+      failed: "Payment was not completed. Your cart is still available to try again.",
       "verification-pending": "Payment verification is taking longer than expected. Check your orders shortly.",
     };
     const message = messages[paymentResult];
     url.searchParams.delete("payment");
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
     if (!message) return undefined;
-    const timer = window.setTimeout(() => setToast(message), 0);
+    const timer = window.setTimeout(() => {
+      if (paymentResult === "success") {
+        setCart([]);
+        setOrdersVersion((version) => version + 1);
+      }
+      setToast(message);
+    }, 0);
     return () => window.clearTimeout(timer);
   }, []);
   const handleSignInSuccess = useCallback((session) => {
@@ -402,6 +383,7 @@ export default function Home() {
     const url = view === "home" ? "/" : `/?view=${view}`;
     window.history.pushState({}, "", url);
     setCatalogSearchOpen(false);
+    if (view === "account") void retryCustomerSessionCheck();
     if (view === "shop" || view === "categories") setActiveCategory("All");
     setActiveView(view);
     if (view !== "account") setCheckoutPendingAuth(false);
@@ -420,20 +402,16 @@ export default function Home() {
     setMobileAccountSectionOpen(true);
   };
   const openCheckout = () => {
-    if (!customerSession?.user?.id) {
-      setCheckoutPendingAuth(true);
-      setCartOpen(false);
-      setToast("Sign in or create an account to continue checkout.");
-      navigateTo("account");
-      return;
+    if (customerSession?.user?.id) {
+      setCheckoutDetails((current) => ({
+        ...current,
+        customerName: current.customerName ?? customerSession.user.user_metadata?.full_name ?? "",
+        phone: current.phone || customerSession.user.phone || "",
+        shippingAddress: current.shippingAddress || customerSession.user.delivery_address || "",
+        city: current.city || customerSession.user.delivery_city || "",
+      }));
     }
-    setCheckoutDetails((current) => ({
-      ...current,
-      customerName: current.customerName ?? customerSession.user.user_metadata?.full_name ?? "",
-      phone: current.phone || customerSession.user.phone || "",
-      shippingAddress: current.shippingAddress || customerSession.user.delivery_address || "",
-      city: current.city || customerSession.user.delivery_city || "",
-    }));
+    setCartOpen(false);
     setCheckoutError("");
     setShowCheckout(true);
   };
@@ -450,7 +428,7 @@ export default function Home() {
     setOrderSubmitting(true);
     setCheckoutError("");
     try {
-      const response = await fetch("/api/orders", {
+      const response = await fetch("/api/paystack/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -463,15 +441,12 @@ export default function Home() {
         }),
       });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.error || "Could not place the order.");
-      setCart([]);
-      setShowCheckout(false);
-      setCartOpen(false);
-      setPaymentOrder(body.order);
-      setShowPayment(true);
-      setOrdersVersion((version) => version + 1);
-      setActiveAccountSection("orders");
-      setCheckoutDetails({ customerName: null, customerEmail: "", phone: "", shippingAddress: "", city: "" });
+      if (!response.ok) throw new Error(body.error || "Could not start Paystack checkout.");
+      const authorizationUrl = new URL(body.authorizationUrl);
+      if (authorizationUrl.protocol !== "https:" || authorizationUrl.hostname !== "checkout.paystack.com") {
+        throw new Error("Paystack returned an invalid checkout link.");
+      }
+      window.location.assign(authorizationUrl.toString());
     } catch (error) {
       setCheckoutError(error.message || "Could not place the order.");
     } finally {
@@ -494,7 +469,7 @@ export default function Home() {
     }
   };
 
-  const customerAccount = <CustomerAccount key={customerSession?.user?.id || "signed-out"} session={customerSession} onSignInSuccess={handleSignInSuccess} onAccountUpdated={handleAccountUpdated} onPayOrder={(order) => { setPaymentOrder(order); setShowPayment(true); }} activeSection={activeAccountSection} onSelectSection={selectAccountSection} onBackToSections={() => setMobileAccountSectionOpen(false)} mobileSectionOpen={mobileAccountSectionOpen} wishlistProducts={wishlistProducts} onAddToCart={addToCart} onRemoveFromWishlist={removeFromWishlist} onOpenCart={() => setCartOpen(true)} cartCount={cartCount} refreshKey={ordersVersion} />;
+  const customerAccount = <CustomerAccount key={customerSession?.user?.id || "signed-out"} session={customerSession} authChecked={authChecked} authCheckError={authCheckError} onRetrySessionCheck={retryCustomerSessionCheck} onSignInSuccess={handleSignInSuccess} onAccountUpdated={handleAccountUpdated} activeSection={activeAccountSection} onSelectSection={selectAccountSection} onBackToSections={() => setMobileAccountSectionOpen(false)} mobileSectionOpen={mobileAccountSectionOpen} wishlistProducts={wishlistProducts} onAddToCart={addToCart} onRemoveFromWishlist={removeFromWishlist} onOpenCart={() => setCartOpen(true)} cartCount={cartCount} refreshKey={ordersVersion} />;
 
   return <main className={`page-view page-${activeView}${mobileAccountSectionOpen ? " mobile-account-section-open" : ""}`}>
     <header className="site-header"><button className="brand brand-mark" type="button" onClick={() => navigateTo("home")} aria-label="SabbyBestCollection home"><Image src="/sabby-best-collection-logo-transparent.png" alt="" width={80} height={75} priority /></button><nav className="main-nav" aria-label="Main navigation"><button className={activeView === "home" ? "active" : ""} onClick={() => navigateTo("home")}>Home</button><button className={activeView === "shop" ? "active" : ""} onClick={() => navigateTo("shop")}>Shop</button><button className={activeView === "categories" ? "active" : ""} onClick={() => navigateTo("categories")}>Categories</button><button className={activeView === "about" ? "active" : ""} onClick={() => navigateTo("about")}>About</button></nav><div className="header-actions">{(activeView === "shop" || activeView === "categories") && <button className="icon-button catalog-search-toggle" type="button" onClick={() => setCatalogSearchOpen((open) => !open)} aria-label={catalogSearchOpen ? "Close product search" : "Search products"} aria-expanded={catalogSearchOpen}><Icon name="search" size={19} /></button>}<button className="icon-button mobile-wishlist-toggle" onClick={openWishlist} aria-label={`Wishlist, ${wishlistProducts.length} saved items`}><Icon name="heart" /></button><button className="icon-button account-toggle" onClick={() => navigateTo("account")} aria-label="Account"><Icon name="user" /></button><button className="bag-button" onClick={() => setCartOpen(true)} aria-label={`Open cart, ${cartCount} items`}><Icon name="bag" /><b>{cartCount}</b></button></div>{catalogSearchOpen && (activeView === "shop" || activeView === "categories") && <div className="catalog-search-popover"><Icon name="search" size={18} /><input ref={catalogSearchInput} id="catalog-search" type="search" aria-label="Search products by name or category" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search products" /><button type="button" onClick={() => setCatalogSearchOpen(false)} aria-label="Close product search"><Icon name="close" size={18} /></button></div>}</header>
@@ -600,9 +575,8 @@ export default function Home() {
     {activeView === "account" && customerSession && mobileAccountSectionOpen && <button className="account-mobile-back" onClick={() => setMobileAccountSectionOpen(false)}>← Back to account sections</button>}
     <footer className="landing-footer"><p>© 2026 SabbyBestCollection</p><p>Made with intention</p></footer>
     {toast && <div className="toast"><span><Icon name="check" size={17} /></span>{toast}</div>}
-    {isCartOpen && <><button className="modal-backdrop" onClick={() => setCartOpen(false)} aria-label="Close cart" /><aside className="cart-drawer" aria-modal="true" role="dialog" aria-label="Your shopping cart"><div className="drawer-header"><h2>Your cart <span>({cartCount})</span></h2><button className="icon-button" onClick={() => setCartOpen(false)} aria-label="Close cart"><Icon name="close" /></button></div>{cart.length ? <><div className="cart-items">{cart.map((item) => <div className="cart-item" key={item.id}><span className="cart-image" style={{ backgroundImage: `url(${item.image})` }} /><div><p className="eyebrow">{item.category}</p><h3>{item.name}</h3><p>{money.format(item.price)}</p><div className="quantity"><button onClick={() => updateQuantity(item.id, -1)} aria-label={`Decrease ${item.name}`}><Icon name="minus" size={14} /></button><span>{item.quantity}</span><button onClick={() => updateQuantity(item.id, 1)} aria-label={`Increase ${item.name}`}><Icon name="plus" size={14} /></button></div></div><button className="remove-button" onClick={() => updateQuantity(item.id, -item.quantity)}>Remove</button></div>)}</div><div className="cart-summary"><p><span>Subtotal</span><b>{money.format(subtotal)}</b></p><p><span>Shipping</span><b>{shipping ? money.format(shipping) : "Complimentary"}</b></p><p className="total"><span>Total</span><b>{money.format(subtotal + shipping)}</b></p><button className="primary-button wide" onClick={openCheckout}>Secure checkout <Icon name="arrow" size={18} /></button><small><Icon name="shield" size={14} /> Sign in required · payment is completed in checkout</small></div></> : <div className="cart-empty"><div className="empty-bag"><Icon name="bag" size={28} /></div><h3>Your cart is waiting.</h3><p>Add an essential to begin your ritual.</p><button className="primary-button" onClick={() => setCartOpen(false)}>Shop collection <Icon name="arrow" size={18} /></button></div>}</aside></>}
+    {isCartOpen && <><button className="modal-backdrop" onClick={() => setCartOpen(false)} aria-label="Close cart" /><aside className="cart-drawer" aria-modal="true" role="dialog" aria-label="Your shopping cart"><div className="drawer-header"><h2>Your cart <span>({cartCount})</span></h2><button className="icon-button" onClick={() => setCartOpen(false)} aria-label="Close cart"><Icon name="close" /></button></div>{cart.length ? <><div className="cart-items">{cart.map((item) => <div className="cart-item" key={item.id}><span className="cart-image" style={{ backgroundImage: `url(${item.image})` }} /><div><p className="eyebrow">{item.category}</p><h3>{item.name}</h3><p>{money.format(item.price)}</p><div className="quantity"><button onClick={() => updateQuantity(item.id, -1)} aria-label={`Decrease ${item.name}`}><Icon name="minus" size={14} /></button><span>{item.quantity}</span><button onClick={() => updateQuantity(item.id, 1)} aria-label={`Increase ${item.name}`}><Icon name="plus" size={14} /></button></div></div><button className="remove-button" onClick={() => updateQuantity(item.id, -item.quantity)}>Remove</button></div>)}</div><div className="cart-summary"><p><span>Subtotal</span><b>{money.format(subtotal)}</b></p><p><span>Shipping</span><b>{shipping ? money.format(shipping) : "Complimentary"}</b></p><p className="total"><span>Total</span><b>{money.format(subtotal + shipping)}</b></p><button className="primary-button wide" onClick={openCheckout}>Secure checkout <Icon name="arrow" size={18} /></button><small><Icon name="shield" size={14} /> Delivery details first · sign in required before payment</small></div></> : <div className="cart-empty"><div className="empty-bag"><Icon name="bag" size={28} /></div><h3>Your cart is waiting.</h3><p>Add an essential to begin your ritual.</p><button className="primary-button" onClick={() => setCartOpen(false)}>Shop collection <Icon name="arrow" size={18} /></button></div>}</aside></>}
     {productDetail && <><button className="modal-backdrop" onClick={() => setProductDetail(null)} aria-label="Close product details" /><div className="product-modal" role="dialog" aria-modal="true" aria-label={productDetail.name}><button className="icon-button close-modal" onClick={() => setProductDetail(null)} aria-label="Close product details"><Icon name="close" /></button><div className="modal-product-image" style={{ backgroundImage: `url(${productDetail.image})` }} /><div className="modal-product-panel"><div className="modal-product-copy"><p className="eyebrow">{productDetail.category}</p><h2>{productDetail.name}</h2><p className="modal-price">{money.format(productDetail.price)} <span>· {productDetail.size}</span></p><button className="account-text-action product-modal-wishlist" onClick={() => toggleWishlist(productDetail)}><Icon name={wishlist.includes(productDetail.id) ? "favorite" : "heart"} size={17} /> {wishlist.includes(productDetail.id) ? "Saved to wishlist" : "Save to wishlist"}</button><section className="product-guide" aria-label="Product guide"><h3>Product Guide</h3><details open><summary>Product Description</summary><p>{productDetail.description || "Product information is not available yet."}</p></details></section></div><div className="modal-product-actions"><button className="primary-button wide" onClick={() => { addToCart(productDetail); setProductDetail(null); setCartOpen(true); }}>Add to cart <Icon name="bag" size={18} /></button><p className="detail-note"><Icon name="shield" size={17} /> Thoughtfully formulated. Always cruelty-free.</p></div></div></div></>}
-    {showCheckout && <><button className="modal-backdrop" onClick={() => setShowCheckout(false)} aria-label="Close checkout" /><section className="checkout-modal checkout-dialog" role="dialog" aria-modal="true" aria-labelledby="checkout-title"><button className="icon-button close-modal" onClick={() => setShowCheckout(false)} aria-label="Close checkout"><Icon name="close" /></button><header className="checkout-heading"><p className="eyebrow">SabbyBestCollection</p><h2 id="checkout-title">Checkout</h2></header><div className="checkout-layout"><form className="checkout-form" onSubmit={completeCheckout}><div className="checkout-section-heading"><h3>Delivery details</h3><p>Where should we bring your finds?</p></div><label htmlFor="checkout-name">Full name<input id="checkout-name" required autoComplete="name" maxLength={120} value={checkoutDetails.customerName ?? customerSession?.user?.user_metadata?.full_name ?? ""} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, customerName: event.target.value })} placeholder="Your full name" /></label><label htmlFor="checkout-email">Email address<input id="checkout-email" required autoComplete="email" type="email" maxLength={254} value={checkoutDetails.customerEmail || customerSession?.user?.email || ""} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, customerEmail: event.target.value })} placeholder="you@example.com" /></label><label htmlFor="checkout-phone">Phone number<input id="checkout-phone" required autoComplete="tel" type="tel" minLength={7} maxLength={30} value={checkoutDetails.phone} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, phone: event.target.value })} placeholder="e.g. 024 000 0000" /></label><label htmlFor="checkout-address">Delivery address<textarea id="checkout-address" required autoComplete="street-address" minLength={8} value={checkoutDetails.shippingAddress} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, shippingAddress: event.target.value })} onBlur={() => saveDeliveryDetails(checkoutDetails.shippingAddress, checkoutDetails.city)} placeholder="House number, street, landmark" /></label><label htmlFor="checkout-city">City / town<input id="checkout-city" required autoComplete="address-level2" minLength={2} maxLength={120} value={checkoutDetails.city} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, city: event.target.value })} onBlur={() => saveDeliveryDetails(checkoutDetails.shippingAddress, checkoutDetails.city)} placeholder="e.g. Accra" /></label>{checkoutError && <p className="form-error" role="alert">{checkoutError}</p>}<button className="primary-button wide" type="submit" disabled={orderSubmitting}>{orderSubmitting ? "Saving order…" : "Place order"} <Icon name="arrow" size={18} /></button><small><Icon name="shield" size={14} /> Prices and total are confirmed by the server when the order is placed.</small></form><aside className="checkout-summary"><div className="checkout-summary-heading"><h3>Order summary</h3><span>{cartCount} {cartCount === 1 ? "item" : "items"}</span></div><div className="checkout-summary-items">{cart.map((item) => <article className="checkout-summary-item" key={item.id}><span className="checkout-summary-image" style={{ backgroundImage: `url(${item.image})` }} role="img" aria-label={item.name} /><div><h4>{item.name}</h4><p>Qty {item.quantity}</p></div><strong>{money.format(item.price * item.quantity)}</strong></article>)}</div><div className="checkout-summary-totals"><p><span>Subtotal</span><b>{money.format(subtotal)}</b></p><p><span>Delivery</span><b>{shipping ? money.format(shipping) : "Complimentary"}</b></p><p className="checkout-summary-total"><span>Total</span><b>{money.format(subtotal + shipping)}</b></p></div></aside></div></section></>}
-    {showPayment && paymentOrder && <PaymentPage order={paymentOrder} onClose={() => { setShowPayment(false); setActiveAccountSection("orders"); navigateTo("account"); }} />}
+    {showCheckout && <><button className="modal-backdrop" onClick={() => setShowCheckout(false)} aria-label="Close checkout" /><section className="checkout-modal checkout-dialog" role="dialog" aria-modal="true" aria-labelledby="checkout-title"><button className="icon-button close-modal" onClick={() => setShowCheckout(false)} aria-label="Close checkout"><Icon name="close" /></button><header className="checkout-heading"><p className="eyebrow">SabbyBestCollection</p><h2 id="checkout-title">Checkout</h2></header><div className="checkout-layout"><form className="checkout-form" onSubmit={completeCheckout}><div className="checkout-section-heading"><h3>Delivery details</h3><p>Where should we bring your finds?</p></div><label htmlFor="checkout-name">Full name<input id="checkout-name" required autoComplete="name" maxLength={120} value={checkoutDetails.customerName ?? customerSession?.user?.user_metadata?.full_name ?? ""} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, customerName: event.target.value })} placeholder="Your full name" /></label><label htmlFor="checkout-email">Email address<input id="checkout-email" required autoComplete="email" type="email" maxLength={254} value={checkoutDetails.customerEmail || customerSession?.user?.email || ""} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, customerEmail: event.target.value })} placeholder="you@example.com" /></label><label htmlFor="checkout-phone">Phone number<input id="checkout-phone" required autoComplete="tel" type="tel" minLength={7} maxLength={30} value={checkoutDetails.phone} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, phone: event.target.value })} placeholder="e.g. 024 000 0000" /></label><label htmlFor="checkout-address">Delivery address<textarea id="checkout-address" required autoComplete="street-address" minLength={8} value={checkoutDetails.shippingAddress} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, shippingAddress: event.target.value })} onBlur={() => saveDeliveryDetails(checkoutDetails.shippingAddress, checkoutDetails.city)} placeholder="House number, street, landmark" /></label><label htmlFor="checkout-city">City / town<input id="checkout-city" required autoComplete="address-level2" minLength={2} maxLength={120} value={checkoutDetails.city} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, city: event.target.value })} onBlur={() => saveDeliveryDetails(checkoutDetails.shippingAddress, checkoutDetails.city)} placeholder="e.g. Accra" /></label>{checkoutError && <p className="form-error" role="alert">{checkoutError}</p>}<button className="primary-button wide" type="submit" disabled={orderSubmitting}>{orderSubmitting ? "Opening secure payment…" : "Place order"} <Icon name="arrow" size={18} /></button><small><Icon name="shield" size={14} /> Your total is confirmed securely by the server before payment.</small></form><aside className="checkout-summary"><div className="checkout-summary-heading"><h3>Order summary</h3><span>{cartCount} {cartCount === 1 ? "item" : "items"}</span></div><div className="checkout-summary-items">{cart.map((item) => <article className="checkout-summary-item" key={item.id}><span className="checkout-summary-image" style={{ backgroundImage: `url(${item.image})` }} role="img" aria-label={item.name} /><div><h4>{item.name}</h4><p>Qty {item.quantity}</p></div><strong>{money.format(item.price * item.quantity)}</strong></article>)}</div><div className="checkout-summary-totals"><p><span>Subtotal</span><b>{money.format(subtotal)}</b></p><p><span>Delivery</span><b>{shipping ? money.format(shipping) : "Complimentary"}</b></p><p className="checkout-summary-total"><span>Total</span><b>{money.format(subtotal + shipping)}</b></p></div></aside></div></section></>}
   </main>;
 }

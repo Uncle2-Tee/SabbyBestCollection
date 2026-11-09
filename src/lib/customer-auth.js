@@ -63,6 +63,25 @@ export async function createCustomerSession(profile, database = prisma) {
   return { token, expiresAt };
 }
 
+export async function restoreCustomerSession(request) {
+  const token = request.cookies?.get(CUSTOMER_SESSION_COOKIE)?.value;
+  if (!token || !process.env.DATABASE_URL) return null;
+
+  const tokenHash = hashSessionToken(token);
+  const session = await prisma.customerSession.findUnique({
+    where: { tokenHash },
+    include: { user: true },
+  });
+  if (!session || session.expiresAt <= new Date()) return null;
+
+  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE * 1000);
+  await prisma.customerSession.update({
+    where: { tokenHash },
+    data: { expiresAt },
+  });
+  return { token, user: session.user };
+}
+
 export async function getAuthenticatedUser(request) {
   const token = request.cookies?.get(CUSTOMER_SESSION_COOKIE)?.value;
   if (!token || !process.env.DATABASE_URL) return null;

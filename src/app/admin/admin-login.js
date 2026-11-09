@@ -3,6 +3,7 @@
 import { useState } from "react";
 import VisibilityIcon from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOffOutlined";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -29,10 +30,7 @@ export default function AdminLogin({ configured }) {
 
   return <main className="atelier-shell">
     <section className="admin-login-layout" aria-labelledby="admin-login-title">
-      <div className="atelier-brand brand-mark" aria-label="SabbyBestCollection">
-        <span className="brand-word">Sabby</span>
-        <span className="brand-tradings">BestCollection</span>
-      </div>
+      <Image className="admin-login-logo" src="/sabby-best-collection-logo-transparent.png" alt="SabbyBestCollection" width={185} height={120} priority />
       <div className="admin-login-main">
         <div className="admin-login-heading">
           <h1 id="admin-login-title">Welcome admin</h1>
