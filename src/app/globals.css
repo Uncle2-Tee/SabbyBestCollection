@@ -745,7 +745,10 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
 .checkout-summary-totals b { color:#655f5c; font-weight:400; text-align:right; }
 .checkout-summary-totals .checkout-summary-total { margin:22px 0 0; padding-top:20px; border-top:1px solid #e5e2dc; color:#332d31; font-size:15px; }
 .checkout-summary-totals .checkout-summary-total b { color:#332d31; font-size:22px; font-weight:700; }
-.checkout-form>.primary-button { min-height:52px; border-radius:0; }
+.cart-summary .primary-button,
+.cart-empty .primary-button,
+.checkout-form>.primary-button { border-radius:999px; }
+.checkout-form>.primary-button { min-height:52px; }
 .checkout-form>small { color:#77716d; font-size:10px; line-height:1.5; }
 @media (max-width:760px) {
   .checkout-dialog { width:calc(100% - 20px); max-height:calc(100dvh - 20px); padding:27px 20px 22px; }
