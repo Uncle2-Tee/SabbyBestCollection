@@ -5,7 +5,6 @@ import VisibilityIcon from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOffOutlined";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 export default function AdminLogin({ configured }) {
   const [username, setUsername] = useState("");
@@ -13,7 +12,6 @@ export default function AdminLogin({ configured }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const router = useRouter();
 
   async function submit(event) {
     event.preventDefault();
@@ -23,7 +21,7 @@ export default function AdminLogin({ configured }) {
       const response = await fetch("/api/admin/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, password }) });
       const body = await response.json();
       if (!response.ok) { setError(body.error || "Unable to sign in."); return; }
-      router.refresh();
+      window.location.reload();
     } catch { setError("Unable to reach the secure sign-in service."); }
     finally { setSubmitting(false); }
   }

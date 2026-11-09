@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import NotificationsIcon from "@mui/icons-material/NotificationsNone";
-import RefreshIcon from "@mui/icons-material/Refresh";
 import LockResetIcon from "@mui/icons-material/LockReset";
 import CloseIcon from "@mui/icons-material/Close";
 import VisibilityIcon from "@mui/icons-material/VisibilityOutlined";
@@ -33,25 +31,6 @@ function timeBasedGreeting() {
 function subscribeToTimeGreeting(onChange) {
   const interval = window.setInterval(onChange, 60_000);
   return () => window.clearInterval(interval);
-}
-
-function getNotificationPermission() {
-  return typeof Notification === "undefined" ? "unsupported" : Notification.permission;
-}
-
-function getServerNotificationPermission() {
-  return "unsupported";
-}
-
-function subscribeToNotificationPermission(onChange) {
-  window.addEventListener("focus", onChange);
-  document.addEventListener("visibilitychange", onChange);
-  window.addEventListener("notificationpermissionchange", onChange);
-  return () => {
-    window.removeEventListener("focus", onChange);
-    document.removeEventListener("visibilitychange", onChange);
-    window.removeEventListener("notificationpermissionchange", onChange);
-  };
 }
 
 function getServerGreeting() {
@@ -90,12 +69,6 @@ export default function AdminDashboard({ username }) {
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [orderMessage, setOrderMessage] = useState("");
   const [newOrders, setNewOrders] = useState([]);
-  const notificationPermission = useSyncExternalStore(
-    subscribeToNotificationPermission,
-    getNotificationPermission,
-    getServerNotificationPermission,
-  );
-  const [refreshOrdersKey, setRefreshOrdersKey] = useState(0);
   const [passwordPanelOpen, setPasswordPanelOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -176,7 +149,7 @@ export default function AdminDashboard({ username }) {
       window.clearInterval(interval);
       window.removeEventListener("focus", onFocus);
     };
-  }, [refreshOrdersKey]);
+  }, []);
 
   useEffect(() => {
     if (!orderMessage) return undefined;
@@ -301,26 +274,6 @@ export default function AdminDashboard({ username }) {
     } catch (error) { setMessage(error.message); }
   }
 
-  async function enableOrderNotifications() {
-    if (typeof Notification === "undefined") {
-      setOrderMessage("Browser notifications are not supported here. New orders will still appear in this dashboard.");
-      return;
-    }
-    try {
-      const permission = await Notification.requestPermission();
-      window.dispatchEvent(new Event("notificationpermissionchange"));
-      setOrderMessage(permission === "granted"
-        ? "Browser notifications are enabled for new orders."
-        : permission === "denied"
-          ? "Notifications are blocked in your browser settings. New orders will still appear here."
-          : "Notification permission was not granted. New orders will still appear here.");
-    } catch (error) {
-      console.error("Could not request browser notification permission:", error);
-      window.dispatchEvent(new Event("notificationpermissionchange"));
-      setOrderMessage("Could not enable browser notifications. New orders will still appear here.");
-    }
-  }
-
   async function updateOrderStatus(order, status) {
     const previousStatus = order.status;
     setOrders((current) => current.map((item) => item.id === order.id ? { ...item, status } : item));
@@ -441,12 +394,6 @@ export default function AdminDashboard({ username }) {
       </summary>
       <div className="admin-dropdown-content">
         <p className="orders-panel-description">New orders are checked every 30 seconds while the dashboard is open.</p>
-        <div className="orders-toolbar">
-          <button type="button" className="admin-refresh-button" onClick={() => setRefreshOrdersKey((key) => key + 1)} disabled={ordersLoading} aria-label="Refresh orders"><RefreshIcon fontSize="small" /> Refresh</button>
-          {notificationPermission === "granted"
-            ? <span className="notification-enabled"><NotificationsIcon fontSize="small" /> Alerts enabled</span>
-            : <button type="button" className="admin-notification-button" onClick={enableOrderNotifications} disabled={notificationPermission === "unsupported"}><NotificationsIcon fontSize="small" /> Enable alerts</button>}
-        </div>
       {newOrders.length > 0 && <div className="new-orders-alert" role="status"><div><strong>{newOrders.length === 1 ? "New order received" : `${newOrders.length} new orders received`}</strong><span>{newOrders[0].customer_name} · {money.format(Number(newOrders[0].total))}</span></div><button type="button" onClick={() => setNewOrders([])}>Mark as seen</button></div>}
       {orderMessage && <p className="orders-message" role="status">{orderMessage}</p>}
       {ordersError && <p className="database-warning orders-error" role="alert">{ordersError}</p>}
@@ -471,11 +418,29 @@ export default function AdminDashboard({ username }) {
             <span className="listing-dropdown-note">Create a catalogue listing</span>
           </summary>
           <div className="listing-dropdown-content">
-            <label>Product name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="e.g. Dew Ritual Essence" /></label>
-            <div className="field-row"><label>Category<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })}>{productCategories.map((category) => <option key={category}>{category}</option>)}</select></label><label>Price (GHS)<input required min="0.01" step="0.01" type="number" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} placeholder="36.00" /></label></div>
-            <div className="field-row"><label>Size<input value={form.size} onChange={(event) => setForm({ ...form, size: event.target.value })} placeholder="One size" /></label><label>Product Image<input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} />{form.image && <span className="upload-status" style={{ fontSize: "0.85em", color: "#666", marginTop: "0.25em", display: "block" }}>✓ Image ready</span>}</label></div>
-            <label>Description<textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="A short, inviting description." /></label>
-            <button className="publish-button" type="submit" disabled={!databaseReady}>Publish product <span>→</span></button>
+            <p className="listing-intro">Add the details customers need to discover and shop this product.</p>
+            <section className="listing-form-section" aria-labelledby="listing-details-heading">
+              <div className="listing-section-heading"><span>01</span><h3 id="listing-details-heading">Product details</h3></div>
+              <label>Product name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="e.g. Dew Ritual Essence" /></label>
+              <div className="field-row listing-field-row"><label>Category<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })}>{productCategories.map((category) => <option key={category}>{category}</option>)}</select></label><label>Price (GHS)<input required min="0.01" step="0.01" type="number" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} placeholder="36.00" /></label></div>
+              <label>Size<input value={form.size} onChange={(event) => setForm({ ...form, size: event.target.value })} placeholder="One size" /></label>
+              <div className="listing-image-field">
+                <span className="listing-field-label">Product image <span>Required</span></span>
+                <label className={`listing-image-upload${form.image ? " has-image" : ""}`}>
+                  <span className="listing-image-preview" aria-hidden="true" style={form.image ? { backgroundImage: `url("${form.image}")` } : undefined}>
+                    {!form.image && <svg viewBox="0 0 24 24" fill="none"><path d="M4 6.75A1.75 1.75 0 0 1 5.75 5h12.5A1.75 1.75 0 0 1 20 6.75v10.5A1.75 1.75 0 0 1 18.25 19H5.75A1.75 1.75 0 0 1 4 17.25V6.75Z" /><circle cx="9" cy="9" r="1.5" /><path d="m5 16 4-4 3 3 2-2 5 5" /></svg>}
+                  </span>
+                  <span className="listing-image-copy" aria-live="polite"><strong>{uploadingImage ? "Uploading image…" : form.image ? "Image ready" : "Choose a product photo"}</strong><span>JPEG, PNG, WebP, AVIF or GIF · Up to 5 MB</span></span>
+                  <span className="listing-image-action">{form.image ? "Replace" : "Browse"}</span>
+                  <input className="listing-image-input" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/gif" onChange={handleImageUpload} disabled={uploadingImage} aria-label="Choose product image" />
+                </label>
+              </div>
+            </section>
+            <section className="listing-form-section listing-description-section" aria-labelledby="listing-description-heading">
+              <div className="listing-section-heading"><span>02</span><h3 id="listing-description-heading">Product description</h3></div>
+              <label>Description <span className="listing-field-optional">Optional</span><textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Describe the details that make this product special." /></label>
+            </section>
+            <button className="publish-button" type="submit" disabled={!databaseReady || uploadingImage}>{uploadingImage ? "Uploading image…" : "Publish product"} <span aria-hidden="true">→</span></button>
           </div>
         </details>
       </form>
