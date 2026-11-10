@@ -58,7 +58,6 @@ export default function AdminDashboard({ username }) {
   const [form, setForm] = useState(emptyForm);
   const [nameDrafts, setNameDrafts] = useState({});
   const [priceDrafts, setPriceDrafts] = useState({});
-  const [savingProductIds, setSavingProductIds] = useState({});
   const [homepageImages, setHomepageImages] = useState(defaultHomepageImages);
   const [homepageImagesSaving, setHomepageImagesSaving] = useState(false);
   const [homepageImageUploading, setHomepageImageUploading] = useState("");
@@ -236,8 +235,23 @@ export default function AdminDashboard({ username }) {
     } catch (error) { setMessage(error.message); }
   }
 
-  async function saveProductEdits(product) {
-    if (savingProductIds[product.id]) return;
+  async function savePrice(product) {
+    const value = priceDrafts[product.id];
+    const price = Number(value);
+    if (value === undefined || value.trim() === "" || !Number.isFinite(price) || price <= 0) {
+      setMessage("Enter a valid price greater than zero.");
+      return;
+    }
+    try {
+      const { product: saved } = await readApiResponse(await fetch("/api/admin/products", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: product.id, price }) }));
+      setProducts((current) => current.map((item) => item.id === product.id ? saved : item));
+      notifyProductCatalogUpdate();
+      setPriceDrafts((current) => { const next = { ...current }; delete next[product.id]; return next; });
+      setMessage(`${product.name} price updated.`);
+    } catch (error) { setMessage(error.message); }
+  }
+
+  async function saveProductName(product) {
     const name = (nameDrafts[product.id] ?? product.name).trim();
     if (!name) {
       setMessage("Enter a product name.");
@@ -247,30 +261,17 @@ export default function AdminDashboard({ username }) {
       setMessage("Product names must be 200 characters or fewer.");
       return;
     }
-    const priceValue = priceDrafts[product.id] ?? String(product.price);
-    const price = Number(priceValue);
-    if (priceValue.trim() === "" || !Number.isFinite(price) || price <= 0) {
-      setMessage("Enter a valid price greater than zero.");
-      return;
-    }
-
-    setSavingProductIds((current) => ({ ...current, [product.id]: true }));
     try {
       const { product: saved } = await readApiResponse(await fetch("/api/admin/products", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: product.id, name, price }),
+        body: JSON.stringify({ id: product.id, name }),
       }));
       setProducts((current) => current.map((item) => item.id === product.id ? saved : item));
       notifyProductCatalogUpdate();
       setNameDrafts((current) => { const next = { ...current }; delete next[product.id]; return next; });
-      setPriceDrafts((current) => { const next = { ...current }; delete next[product.id]; return next; });
-      setMessage(`${saved.name} updated.`);
-    } catch (error) {
-      setMessage(error.message);
-    } finally {
-      setSavingProductIds((current) => { const next = { ...current }; delete next[product.id]; return next; });
-    }
+      setMessage(`${saved.name} name updated.`);
+    } catch (error) { setMessage(error.message); }
   }
 
   async function updateOrderStatus(order, status) {
@@ -444,20 +445,22 @@ export default function AdminDashboard({ username }) {
         </details>
       </form>
       <section className="catalog-panel">
-        <div className="panel-heading"><div><p className="atelier-kicker">Live catalogue</p><h2>Products</h2></div><span className="product-count">{databaseReady ? `${products.length} live` : "Database unavailable"}</span></div>
+        <div className="catalog-panel-heading">
+          <div className="catalog-panel-heading-copy"><p className="atelier-kicker">Live catalogue</p><h2>Products</h2><p>Keep your product listings current and ready to shop.</p></div>
+          <span className={`catalog-live-status${databaseReady ? " is-live" : ""}`}><i aria-hidden="true" />{databaseReady ? `${products.length} active` : "Unavailable"}</span>
+        </div>
         <details className="catalog-dropdown">
-          <summary><span>Browse and manage products</span><span className="catalog-dropdown-count">{products.length}</span></summary>
+          <summary className="catalog-dropdown-summary"><span className="catalog-summary-copy"><strong>Manage products</strong><small>Edit names, prices, and listings</small></span><span className="catalog-dropdown-count">{products.length}</span></summary>
           <div className="catalog-list">{products.map((product) => <article key={product.id} className="catalog-item">
             <div className="catalog-item-overview">
               <span className="catalog-image" style={{ backgroundImage: `url(${product.image})` }} />
-              <div className="catalog-item-details"><h3>{product.name}</h3><p>{product.category} <i>·</i> {product.size}</p></div>
+              <div className="catalog-item-details"><h3>{product.name}</h3><p><span>{product.category}</span><i aria-hidden="true">·</i><span>{product.size}</span></p></div>
               <button className="catalog-remove-button" type="button" onClick={() => deleteProduct(product)} aria-label={`Remove ${product.name}`}>Remove</button>
             </div>
             <div className="catalog-editors">
-              <div className="catalog-name-editor"><label htmlFor={`name-${product.id}`}>Product name</label><div><input id={`name-${product.id}`} aria-label={`Name for ${product.name}`} maxLength={200} value={nameDrafts[product.id] ?? product.name} onChange={(event) => setNameDrafts((current) => ({ ...current, [product.id]: event.target.value }))} /></div></div>
-              <div className="catalog-price-editor"><label htmlFor={`price-${product.id}`}>Price (GHS)</label><div><input id={`price-${product.id}`} aria-label={`Price for ${product.name} in Ghana cedis`} type="number" min="0.01" step="0.01" required value={priceDrafts[product.id] ?? String(product.price)} onChange={(event) => setPriceDrafts((current) => ({ ...current, [product.id]: event.target.value }))} /></div></div>
+              <div className="catalog-name-editor"><label htmlFor={`name-${product.id}`}>Product name</label><div><input id={`name-${product.id}`} aria-label={`Name for ${product.name}`} maxLength={200} value={nameDrafts[product.id] ?? product.name} onChange={(event) => setNameDrafts((current) => ({ ...current, [product.id]: event.target.value }))} /><button type="button" onClick={() => saveProductName(product)}>Save name</button></div></div>
+              <div className="catalog-price-editor"><label htmlFor={`price-${product.id}`}>Price (GHS)</label><div><input id={`price-${product.id}`} aria-label={`Price for ${product.name} in Ghana cedis`} type="number" min="0.01" step="0.01" required value={priceDrafts[product.id] ?? String(product.price)} onChange={(event) => setPriceDrafts((current) => ({ ...current, [product.id]: event.target.value }))} /><button type="button" onClick={() => savePrice(product)}>Save price</button></div></div>
             </div>
-            <button className="catalog-item-save" type="button" onClick={() => saveProductEdits(product)} disabled={savingProductIds[product.id]}>{savingProductIds[product.id] ? "Saving…" : "Save changes"}</button>
           </article>)}</div>
         </details>
       </section>
