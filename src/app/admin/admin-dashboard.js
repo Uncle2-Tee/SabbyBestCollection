@@ -445,7 +445,7 @@ export default function AdminDashboard({ username }) {
       <section className="catalog-panel">
         <div className="panel-heading"><div><p className="atelier-kicker">Live catalogue</p><h2>Products</h2></div><span className="product-count">{databaseReady ? `${products.length} live` : "Database unavailable"}</span></div>
         <details className="catalog-dropdown">
-          <summary className="catalog-dropdown-summary"><span className="catalog-summary-copy"><strong>Manage your catalogue</strong><small>Edit product names and prices</small></span><span className="catalog-dropdown-count"><strong>{products.length}</strong><small>products</small></span></summary>
+          <summary><span>Browse and manage products</span><span className="catalog-dropdown-count">{products.length}</span></summary>
           <div className="catalog-list">{products.map((product) => <article key={product.id} className="catalog-item">
             <div className="catalog-item-overview">
               <span className="catalog-image" style={{ backgroundImage: `url(${product.image})` }} />
