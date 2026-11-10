@@ -1007,7 +1007,7 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
 @media (max-width:900px) {
   .site-header { grid-template-columns:minmax(100px,1fr) auto minmax(100px,1fr); gap:14px; }
   .site-header .brand-mark { width:122px; height:72px; }
-  .site-header .brand-mark img { width:120px; height:70px; }
+  .site-header .brand-mark img { width:120px; height:auto; max-height:70px; }
   .main-nav { gap:20px; }
   .hero { min-height:670px; grid-template-columns:minmax(0,1fr) minmax(0,.92fr); }
   .hero-copy { padding-left:5vw; }
@@ -1023,7 +1023,7 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
     gap:12px;
   }
   .site-header .brand-mark { width:108px; height:64px; border-radius:6px; }
-  .site-header .brand-mark img { width:106px; height:62px; }
+  .site-header .brand-mark img { width:106px; height:auto; max-height:62px; }
   .main-nav { display:none; }
   .header-actions { gap:11px; }
   .header-actions .icon-button { padding:3px; }
@@ -1405,9 +1405,11 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
   box-shadow:0 4px 20px rgba(17,17,17,.06);
 }
 .page-view .main-nav {
-  border-color:var(--line);
+  border:1px solid #f47732;
+  border-radius:999px;
   background:#f7f6f3;
   box-shadow:inset 0 1px 2px rgba(17,17,17,.03);
+  padding:5px 12px;
 }
 .page-view .main-nav button { color:#333; }
 .page-view .main-nav button:hover { color:#111; background:var(--page-accent-soft); }

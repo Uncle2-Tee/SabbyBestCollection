@@ -152,7 +152,7 @@
 .admin-login-form .admin-login-password-field input { padding-right:52px; }
 .admin-login-form .admin-login-password-toggle { position:absolute; top:0; right:0; width:48px; min-height:49px; justify-content:center; margin:0 0 22px; padding:0; border:0; background:transparent; color:#706973; }
 .admin-login-form .admin-login-password-toggle:hover:not(:disabled) { background:transparent; color:var(--atelier-rose); }
-.admin-login-form .admin-login-password-toggle svg { width:20px; height:20px; }
+.admin-login-form .admin-login-password-toggle svg { width:20px; height:20px; transform:translateY(3px); }
 .admin-login-form button { position:relative; width:100%; min-height:52px; display:flex; align-items:center; justify-content:center; gap:16px; margin-top:5px; padding:0 18px; border:1px solid var(--atelier-ink); border-radius:999px; background:var(--atelier-ink); color:#fff; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; transition:background .18s,color .18s; }
 .admin-login-form button:hover:not(:disabled) { background:#fff; color:var(--atelier-ink); }
 .admin-login-form button:disabled { opacity:.65; cursor:wait; }
