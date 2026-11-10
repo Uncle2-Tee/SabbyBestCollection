@@ -28,7 +28,7 @@ export default function AdminLogin({ configured }) {
 
   return <main className="atelier-shell">
     <section className="admin-login-layout" aria-labelledby="admin-login-title">
-      <Image className="admin-login-logo" src="/sabby-best-collection-logo-transparent.png" alt="SabbyBestCollection" width={185} height={120} priority />
+      <Image className="admin-login-logo" src="/sabby-best-collection-logo-transparent.png" alt="SabbyBestCollection" width={926} height={608} priority />
       <div className="admin-login-main">
         <div className="admin-login-heading">
           <h1 id="admin-login-title">Welcome admin</h1>

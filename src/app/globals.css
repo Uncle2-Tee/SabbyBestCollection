@@ -811,7 +811,7 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
   gap:0;
 }
 .site-header .brand-mark:hover { opacity:.9; }
-.site-header .brand-mark img { display:block; width:146px; height:80px; object-fit:contain; }
+.site-header .brand-mark img { display:block; width:100%; height:auto; max-height:100%; object-fit:contain; }
 .site-header .brand-mark .brand-word {
   color:#f47732;
   font:800 clamp(15px,1.65vw,21px)/1 Arial,Helvetica,sans-serif;

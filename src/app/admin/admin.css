@@ -184,7 +184,7 @@
 
 .dashboard-header .dashboard-header-actions { gap:10px; }
 .dashboard-header .dashboard-brand-logo { width:146px; height:80px; flex:0 0 auto; }
-.dashboard-brand-logo img { display:block; width:100%; height:100%; object-fit:contain; }
+.dashboard-brand-logo img { display:block; width:100%; height:auto; max-height:100%; object-fit:contain; }
 .dashboard-header .dashboard-password-toggle,.dashboard-header .dashboard-header-actions>button:last-child { min-height:38px; display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:0 14px; border:1px solid #76578d; border-radius:999px; background:#76578d; color:#fff; font-size:10px; font-weight:600; letter-spacing:.04em; cursor:pointer; transition:background .18s ease,color .18s ease,border-color .18s ease; }
 .dashboard-header .dashboard-password-toggle:hover { border-color:#614578; background:#614578; }
 .dashboard-header .dashboard-header-actions>button:last-child { border-color:#ad5272; background:#ad5272; }
