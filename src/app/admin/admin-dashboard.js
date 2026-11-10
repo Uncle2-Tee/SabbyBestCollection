@@ -421,7 +421,7 @@ export default function AdminDashboard({ username }) {
             <p className="listing-intro">Add the details customers need to discover and shop this product.</p>
             <section className="listing-form-section" aria-labelledby="listing-details-heading">
               <div className="listing-section-heading"><span>01</span><h3 id="listing-details-heading">Product details</h3></div>
-              <label>Product name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="e.g. Dew Ritual Essence" /></label>
+              <label>Product name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="e.g. Sneakers" /></label>
               <div className="field-row listing-field-row"><label>Category<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })}>{productCategories.map((category) => <option key={category}>{category}</option>)}</select></label><label>Price (GHS)<input required min="0.01" step="0.01" type="number" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} placeholder="36.00" /></label></div>
               <label>Size<input value={form.size} onChange={(event) => setForm({ ...form, size: event.target.value })} placeholder="One size" /></label>
               <div className="listing-image-field">
