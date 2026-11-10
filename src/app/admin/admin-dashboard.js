@@ -9,7 +9,7 @@ import VisibilityIcon from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOffOutlined";
 import { defaultProductCaution, defaultProductUsage, productCategories } from "../../lib/catalog";
 import { notifyCustomerOrderUpdate } from "../../lib/customer-order-updates";
-import { defaultHomepageImages } from "../../lib/homepage-images";
+import { defaultHomeImages } from "../../lib/homepage-images";
 import { notifyProductCatalogUpdate } from "../../lib/product-catalog-updates";
 
 const money = new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS", minimumFractionDigits: 2 });
