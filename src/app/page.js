@@ -574,50 +574,43 @@ export default function Home() {
       </section>
       {activeView !== "categories" && <section className="newsletter"><p className="eyebrow">A note from SabbyBestCollection</p><h2>Good things, in your inbox.</h2><form onSubmit={(event) => { event.preventDefault(); setToast("Welcome to the SabbyBestCollection list."); event.currentTarget.reset(); }}><input type="email" required placeholder="Your email address" aria-label="Your email address" /><button aria-label="Subscribe"><Icon name="arrow" /></button></form><small>By subscribing, you agree to receive marketing emails. Unsubscribe anytime.</small></section>}
       {activeView === "about" && <section className="about-page">
-        <header className="about-intro">
-          <p className="eyebrow">About SabbyBestCollection</p>
-          <div className="about-intro-content">
-            <h1>Good care.<br /><em>Made simple.</em></h1>
-            <p>We believe shopping should be simple, convenient, and enjoyable. SabbyBestCollection brings carefully selected fashion, home, and everyday essentials from trusted sellers directly to customers.</p>
+        <header className="about-hero">
+          <div className="about-hero-copy">
+            <p className="eyebrow">A little about us</p>
+            <h1>Everyday style,<br /><em>thoughtfully found.</em></h1>
+            <p>We bring together carefully selected fashion, home, and everyday essentials to make finding the things you love feel simple.</p>
+            <button className="primary-button" onClick={() => navigateTo("shop")}>Explore the collection <Icon name="arrow" size={17} /></button>
+            <div className="about-hero-signoff"><span>SB</span><p>Thoughtful finds.<br />A more considered everyday.</p></div>
           </div>
-          <div className="about-intro-footer"><span>Thoughtful finds</span><span>Dependable service</span><span>Everyday essentials</span></div>
         </header>
-        <section className="about-mission">
-          <p className="eyebrow">Our mission</p>
-          <div className="about-mission-copy">
-            <h2>Make good products easier to find and easier to enjoy.</h2>
-            <p>We aim to connect customers with considered products, dependable service, and a shopping experience that feels clear from discovery to delivery.</p>
+        <section className="about-story">
+          <div className="about-story-label"><span>01</span><p className="eyebrow">Our approach</p></div>
+          <div className="about-story-copy">
+            <h2>A thoughtful edit for the way you live.</h2>
+            <p>SabbyBestCollection brings together fashion, home, and everyday essentials from trusted sellers. We believe great shopping should feel clear at every step—from discovering something new to getting help with an order.</p>
           </div>
         </section>
         <section className="about-benefits">
           <div className="about-section-heading">
-            <div><p className="eyebrow">The SabbyBestCollection difference</p><h2>Good care, without the guesswork.</h2></div>
-            <p>From choosing a product to getting help with an order, we want every step to feel straightforward.</p>
+            <div><p className="eyebrow">The experience</p><h2>Considered in every detail.</h2></div>
+            <p>A simpler, more personal way to shop for the things you reach for every day.</p>
           </div>
           <div className="about-benefit-list">
-            <article><span>01</span><div><h3>Considered quality</h3><p>A thoughtful selection of fashion, home, and everyday essentials from trusted sellers.</p></div></article>
-            <article><span>02</span><div><h3>Convenient delivery</h3><p>Delivery options designed to help your order reach you promptly.</p></div></article>
-            <article><span>03</span><div><h3>Clear payments</h3><p>Choose from the payment options available at checkout.</p></div></article>
-            <article><span>04</span><div><h3>Helpful support</h3><p>Reach our team by phone or WhatsApp whenever you need assistance.</p></div></article>
-            <article><span>05</span><div><h3>Order guidance</h3><p>Contact us about an order and we’ll help you with the next steps.</p></div></article>
+            <article><span>01</span><div><h3>Thoughtful selection</h3><p>Fashion, home, and everyday essentials selected with care.</p></div></article>
+            <article><span>02</span><div><h3>Shopping made simple</h3><p>A clear experience from browsing through checkout and delivery.</p></div></article>
+            <article><span>03</span><div><h3>Here when you need us</h3><p>Our team is ready to help with products, orders, and next steps.</p></div></article>
           </div>
         </section>
-        <div className="about-details">
-          <section className="about-values">
-            <div><p className="eyebrow">Our values</p><h2>What guides us</h2></div>
-            <ul><li>Quality</li><li>Trust</li><li>Customer satisfaction</li><li>Transparency</li></ul>
-          </section>
-          <section className="about-contact">
-            <div><p className="eyebrow">Contact & location</p><h2>We’re here to help.</h2><p className="about-contact-intro">Questions about a product or order? Get in touch with our team.</p></div>
-            <address>
-              <p><span>Phone</span><span className="about-contact-pending">Phone details to be provided</span></p>
-              <p><span>WhatsApp</span>{whatsappHref ? <a className="about-whatsapp-link account-help-whatsapp" href={whatsappHref} target="_blank" rel="noreferrer"><WhatsAppIcon aria-hidden="true" /> WhatsApp</a> : <span className="about-whatsapp-link account-help-whatsapp contact-unavailable"><WhatsAppIcon aria-hidden="true" /> WhatsApp</span>}</p>
-              <p><span>Email</span><span className="about-contact-pending">Email details to be provided</span></p>
-              <p><span>Social media</span><span className="about-contact-pending">Social profiles to be provided</span></p>
-              <p><span>Location</span><span>HO</span></p>
-            </address>
-          </section>
-        </div>
+        <section className="about-values">
+          <div><p className="eyebrow">What matters to us</p><h2>Our values, simply.</h2></div>
+          <ul><li>Quality</li><li>Trust</li><li>Customer care</li><li>Transparency</li></ul>
+        </section>
+        <section className="about-contact">
+          <div className="about-contact-copy"><p className="eyebrow">A real person, ready to help</p><h2>We’re here for you.</h2><p className="about-contact-intro">Questions about a product or order? Get in touch with our team and we’ll help you find the right next step.</p>
+            {whatsappHref && <a className="about-whatsapp-link" href={whatsappHref} target="_blank" rel="noreferrer"><WhatsAppIcon aria-hidden="true" /> Chat with us on WhatsApp <Icon name="arrow" size={16} /></a>}
+          </div>
+          <div className="about-contact-card"><span className="about-contact-mark"><Icon name="help" size={22} /></span><p>We’d love to hear from you.</p><span>Product questions · Order support · General enquiries</span></div>
+        </section>
       </section>}
     </>}
     {activeView === "account" && customerSession && mobileAccountSectionOpen && <button className="account-mobile-back" onClick={() => setMobileAccountSectionOpen(false)}>← Back to account sections</button>}
