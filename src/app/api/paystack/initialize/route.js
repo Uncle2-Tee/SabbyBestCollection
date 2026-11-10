@@ -103,7 +103,7 @@ export async function POST(request) {
         throw new Error("Paystack returned a mismatched transaction reference.");
       }
       await prisma.paymentAttempt.update({ where: { id: attempt.id }, data: { status: "pending" } });
-      return NextResponse.json({ authorizationUrl: transaction.authorizationUrl });
+      return NextResponse.json({ accessCode: transaction.accessCode, reference: transaction.reference });
     } catch (error) {
       await prisma.paymentAttempt.update({
         where: { id: attempt.id },

@@ -25,6 +25,7 @@ import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import StarIcon from "@mui/icons-material/StarRounded";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import Image from "next/image";
+import Script from "next/script";
 import { initialProducts, productCategories } from "../lib/catalog";
 import { defaultHomepageImages, permanentHomepageBackground } from "../lib/homepage-images";
 import CustomerAccount from "./components/customer-account";
@@ -86,6 +87,8 @@ export default function Home() {
   const [checkoutDetails, setCheckoutDetails] = useState({ customerName: null, customerEmail: "", phone: "", shippingAddress: "", city: "" });
   const [checkoutError, setCheckoutError] = useState("");
   const [orderSubmitting, setOrderSubmitting] = useState(false);
+  const [paystackReady, setPaystackReady] = useState(false);
+  const [paystackLoadFailed, setPaystackLoadFailed] = useState(false);
   const [toast, setToast] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [customerStoreOwnerId, setCustomerStoreOwnerId] = useState(null);
@@ -402,6 +405,8 @@ export default function Home() {
     setMobileAccountSectionOpen(true);
   };
   const openCheckout = () => {
+    setCheckoutError("");
+    setPaystackLoadFailed(false);
     if (customerSession?.user?.id) {
       setCheckoutDetails((current) => ({
         ...current,
@@ -442,15 +447,58 @@ export default function Home() {
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error || "Could not start Paystack checkout.");
-      const authorizationUrl = new URL(body.authorizationUrl);
-      if (authorizationUrl.protocol !== "https:" || authorizationUrl.hostname !== "checkout.paystack.com") {
-        throw new Error("Paystack returned an invalid checkout link.");
+      if (typeof body.accessCode !== "string" || typeof body.reference !== "string" || !paystackReady) {
+        throw new Error("Secure payment checkout is not ready. Please try again.");
       }
-      window.location.assign(authorizationUrl.toString());
+
+      const PaystackPop = window.PaystackPop;
+      if (typeof PaystackPop !== "function") {
+        throw new Error("Secure payment checkout is unavailable. Please refresh the page and try again.");
+      }
+      const paystack = new PaystackPop();
+      paystack.resumeTransaction(body.accessCode, {
+        onSuccess: async (transaction) => {
+          if (transaction?.reference !== body.reference) {
+            console.error("Paystack popup returned an unexpected transaction reference.");
+            setShowCheckout(false);
+            setToast("Payment confirmation is pending. Check My Orders before trying again.");
+            setOrderSubmitting(false);
+            return;
+          }
+
+          try {
+            const verificationResponse = await fetch("/api/paystack/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ reference: transaction.reference }),
+            });
+            const verification = await verificationResponse.json().catch(() => ({}));
+            if (!verificationResponse.ok || verification.verified !== true) {
+              throw new Error(verification.error || "Payment verification is still pending.");
+            }
+            setCart([]);
+            setOrdersVersion((version) => version + 1);
+            setShowCheckout(false);
+            setToast("Payment received and verified. Your order is in order history.");
+          } catch (error) {
+            console.error("Could not verify completed Paystack popup payment:", error);
+            setShowCheckout(false);
+            setToast("Payment confirmation is delayed. Check My Orders before trying again.");
+          } finally {
+            setOrderSubmitting(false);
+          }
+        },
+        onCancel: () => setOrderSubmitting(false),
+        onError: (error) => {
+          setCheckoutError(error?.message || "Could not open secure payment checkout.");
+          setOrderSubmitting(false);
+        },
+      });
     } catch (error) {
       setCheckoutError(error.message || "Could not place the order.");
-    } finally {
       setOrderSubmitting(false);
+    } finally {
+      if (!paystackReady) setOrderSubmitting(false);
     }
   };
   const saveDeliveryDetails = async (deliveryAddress, deliveryCity) => {
@@ -577,6 +625,7 @@ export default function Home() {
     {toast && <div className="toast"><span><Icon name="check" size={17} /></span>{toast}</div>}
     {isCartOpen && <><button className="modal-backdrop" onClick={() => setCartOpen(false)} aria-label="Close cart" /><aside className="cart-drawer" aria-modal="true" role="dialog" aria-label="Your shopping cart"><div className="drawer-header"><h2>Your cart <span>({cartCount})</span></h2><button className="icon-button" onClick={() => setCartOpen(false)} aria-label="Close cart"><Icon name="close" /></button></div>{cart.length ? <><div className="cart-items">{cart.map((item) => <div className="cart-item" key={item.id}><span className="cart-image" style={{ backgroundImage: `url(${item.image})` }} /><div><p className="eyebrow">{item.category}</p><h3>{item.name}</h3><p>{money.format(item.price)}</p><div className="quantity"><button onClick={() => updateQuantity(item.id, -1)} aria-label={`Decrease ${item.name}`}><Icon name="minus" size={14} /></button><span>{item.quantity}</span><button onClick={() => updateQuantity(item.id, 1)} aria-label={`Increase ${item.name}`}><Icon name="plus" size={14} /></button></div></div><button className="remove-button" onClick={() => updateQuantity(item.id, -item.quantity)}>Remove</button></div>)}</div><div className="cart-summary"><p><span>Subtotal</span><b>{money.format(subtotal)}</b></p><p><span>Shipping</span><b>{shipping ? money.format(shipping) : "Complimentary"}</b></p><p className="total"><span>Total</span><b>{money.format(subtotal + shipping)}</b></p><button className="primary-button wide" onClick={openCheckout}>Secure checkout <Icon name="arrow" size={18} /></button><small><Icon name="shield" size={14} /> Delivery details first · sign in required before payment</small></div></> : <div className="cart-empty"><div className="empty-bag"><Icon name="bag" size={28} /></div><h3>Your cart is waiting.</h3><p>Add an essential to begin your ritual.</p><button className="primary-button" onClick={() => { setCartOpen(false); navigateTo("shop"); }}>Shop collection <Icon name="arrow" size={18} /></button></div>}</aside></>}
     {productDetail && <><button className="modal-backdrop" onClick={() => setProductDetail(null)} aria-label="Close product details" /><div className="product-modal" role="dialog" aria-modal="true" aria-label={productDetail.name}><button className="icon-button close-modal" onClick={() => setProductDetail(null)} aria-label="Close product details"><Icon name="close" /></button><div className="modal-product-image" style={{ backgroundImage: `url(${productDetail.image})` }} /><div className="modal-product-panel"><div className="modal-product-copy"><p className="eyebrow">{productDetail.category}</p><h2>{productDetail.name}</h2><p className="modal-price">{money.format(productDetail.price)} <span>· {productDetail.size}</span></p><button className="account-text-action product-modal-wishlist" onClick={() => toggleWishlist(productDetail)}><Icon name={wishlist.includes(productDetail.id) ? "favorite" : "heart"} size={17} /> {wishlist.includes(productDetail.id) ? "Saved to wishlist" : "Save to wishlist"}</button><section className="product-guide" aria-label="Product guide"><h3>Product Guide</h3><details open><summary>Product Description</summary><p>{productDetail.description || "Product information is not available yet."}</p></details></section></div><div className="modal-product-actions"><button className="primary-button wide" onClick={() => { addToCart(productDetail); setProductDetail(null); setCartOpen(true); }}>Add to cart <Icon name="bag" size={18} /></button><p className="detail-note"><Icon name="shield" size={17} /> Thoughtfully formulated. Always cruelty-free.</p></div></div></div></>}
-    {showCheckout && <><button className="modal-backdrop" onClick={() => setShowCheckout(false)} aria-label="Close checkout" /><section className="checkout-modal checkout-dialog" role="dialog" aria-modal="true" aria-labelledby="checkout-title"><button className="icon-button close-modal" onClick={() => setShowCheckout(false)} aria-label="Close checkout"><Icon name="close" /></button><header className="checkout-heading"><p className="eyebrow">SabbyBestCollection</p><h2 id="checkout-title">Checkout</h2></header><div className="checkout-layout"><form className="checkout-form" onSubmit={completeCheckout}><div className="checkout-section-heading"><h3>Delivery details</h3><p>Where should we bring your finds?</p></div><label htmlFor="checkout-name">Full name<input id="checkout-name" required autoComplete="name" maxLength={120} value={checkoutDetails.customerName ?? customerSession?.user?.user_metadata?.full_name ?? ""} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, customerName: event.target.value })} placeholder="Your full name" /></label><label htmlFor="checkout-email">Email address<input id="checkout-email" required autoComplete="email" type="email" maxLength={254} value={checkoutDetails.customerEmail || customerSession?.user?.email || ""} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, customerEmail: event.target.value })} placeholder="you@example.com" /></label><label htmlFor="checkout-phone">Phone number<input id="checkout-phone" required autoComplete="tel" type="tel" minLength={7} maxLength={30} value={checkoutDetails.phone} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, phone: event.target.value })} placeholder="e.g. 024 000 0000" /></label><label htmlFor="checkout-address">Delivery address<textarea id="checkout-address" required autoComplete="street-address" minLength={8} value={checkoutDetails.shippingAddress} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, shippingAddress: event.target.value })} onBlur={() => saveDeliveryDetails(checkoutDetails.shippingAddress, checkoutDetails.city)} placeholder="House number, street, landmark" /></label><label htmlFor="checkout-city">City / town<input id="checkout-city" required autoComplete="address-level2" minLength={2} maxLength={120} value={checkoutDetails.city} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, city: event.target.value })} onBlur={() => saveDeliveryDetails(checkoutDetails.shippingAddress, checkoutDetails.city)} placeholder="e.g. Accra" /></label>{checkoutError && <p className="form-error" role="alert">{checkoutError}</p>}<button className="primary-button wide" type="submit" disabled={orderSubmitting}>{orderSubmitting ? "Opening secure payment…" : "Place order"} <Icon name="arrow" size={18} /></button><small><Icon name="shield" size={14} /> Your total is confirmed securely by the server before payment.</small></form><aside className="checkout-summary"><div className="checkout-summary-heading"><h3>Order summary</h3><span>{cartCount} {cartCount === 1 ? "item" : "items"}</span></div><div className="checkout-summary-items">{cart.map((item) => <article className="checkout-summary-item" key={item.id}><span className="checkout-summary-image" style={{ backgroundImage: `url(${item.image})` }} role="img" aria-label={item.name} /><div><h4>{item.name}</h4><p>Qty {item.quantity}</p></div><strong>{money.format(item.price * item.quantity)}</strong></article>)}</div><div className="checkout-summary-totals"><p><span>Subtotal</span><b>{money.format(subtotal)}</b></p><p><span>Delivery</span><b>{shipping ? money.format(shipping) : "Complimentary"}</b></p><p className="checkout-summary-total"><span>Total</span><b>{money.format(subtotal + shipping)}</b></p></div></aside></div></section></>}
+    {showCheckout && <Script src="https://js.paystack.co/v2/inline.js" strategy="afterInteractive" onReady={() => { setPaystackReady(true); setPaystackLoadFailed(false); }} onError={() => { setPaystackLoadFailed(true); setCheckoutError("Secure payment checkout could not load. Please refresh the page and try again."); }} />}
+    {showCheckout && <><button className="modal-backdrop" onClick={() => setShowCheckout(false)} aria-label="Close checkout" /><section className="checkout-modal checkout-dialog" role="dialog" aria-modal="true" aria-labelledby="checkout-title"><button className="icon-button close-modal" onClick={() => setShowCheckout(false)} aria-label="Close checkout"><Icon name="close" /></button><header className="checkout-heading"><p className="eyebrow">SabbyBestCollection</p><h2 id="checkout-title">Checkout</h2></header><div className="checkout-layout"><form className="checkout-form" onSubmit={completeCheckout}><div className="checkout-section-heading"><h3>Delivery details</h3><p>Where should we bring your finds?</p></div><label htmlFor="checkout-name">Full name<input id="checkout-name" required autoComplete="name" maxLength={120} value={checkoutDetails.customerName ?? customerSession?.user?.user_metadata?.full_name ?? ""} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, customerName: event.target.value })} placeholder="Your full name" /></label><label htmlFor="checkout-email">Email address<input id="checkout-email" required autoComplete="email" type="email" maxLength={254} value={checkoutDetails.customerEmail || customerSession?.user?.email || ""} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, customerEmail: event.target.value })} placeholder="you@example.com" /></label><label htmlFor="checkout-phone">Phone number<input id="checkout-phone" required autoComplete="tel" type="tel" minLength={7} maxLength={30} value={checkoutDetails.phone} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, phone: event.target.value })} placeholder="e.g. 024 000 0000" /></label><label htmlFor="checkout-address">Delivery address<textarea id="checkout-address" required autoComplete="street-address" minLength={8} value={checkoutDetails.shippingAddress} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, shippingAddress: event.target.value })} onBlur={() => saveDeliveryDetails(checkoutDetails.shippingAddress, checkoutDetails.city)} placeholder="House number, street, landmark" /></label><label htmlFor="checkout-city">City / town<input id="checkout-city" required autoComplete="address-level2" minLength={2} maxLength={120} value={checkoutDetails.city} onChange={(event) => setCheckoutDetails({ ...checkoutDetails, city: event.target.value })} onBlur={() => saveDeliveryDetails(checkoutDetails.shippingAddress, checkoutDetails.city)} placeholder="e.g. Accra" /></label>{checkoutError && <p className="form-error" role="alert">{checkoutError}</p>}<button className="primary-button wide" type="submit" disabled={orderSubmitting || !paystackReady}>{!paystackReady ? (paystackLoadFailed ? "Secure payment unavailable" : "Loading secure payment…") : orderSubmitting ? "Opening secure payment…" : "Place order"} <Icon name="arrow" size={18} /></button><small><Icon name="shield" size={14} /> Your total is confirmed securely by the server before payment.</small></form><aside className="checkout-summary"><div className="checkout-summary-heading"><h3>Order summary</h3><span>{cartCount} {cartCount === 1 ? "item" : "items"}</span></div><div className="checkout-summary-items">{cart.map((item) => <article className="checkout-summary-item" key={item.id}><span className="checkout-summary-image" style={{ backgroundImage: `url(${item.image})` }} role="img" aria-label={item.name} /><div><h4>{item.name}</h4><p>Qty {item.quantity}</p></div><strong>{money.format(item.price * item.quantity)}</strong></article>)}</div><div className="checkout-summary-totals"><p><span>Subtotal</span><b>{money.format(subtotal)}</b></p><p><span>Delivery</span><b>{shipping ? money.format(shipping) : "Complimentary"}</b></p><p className="checkout-summary-total"><span>Total</span><b>{money.format(subtotal + shipping)}</b></p></div></aside></div></section></>}
   </main>;
 }

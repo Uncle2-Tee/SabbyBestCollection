@@ -61,17 +61,12 @@ export async function initializePaystackTransaction({ email, amount, reference, 
     body: { email, amount, currency: "GHS", reference, callback_url: callbackUrl, metadata },
   });
 
-  let authorizationUrl;
-  try {
-    authorizationUrl = new URL(transaction.authorization_url);
-  } catch {
-    throw new Error("Paystack returned an invalid checkout URL.");
-  }
-  if (authorizationUrl.protocol !== "https:" || authorizationUrl.hostname !== "checkout.paystack.com") {
-    throw new Error("Paystack returned an unexpected checkout URL.");
+  if (typeof transaction.access_code !== "string" || !transaction.access_code || transaction.access_code.length > 512
+    || typeof transaction.reference !== "string" || !transaction.reference) {
+    throw new Error("Paystack returned invalid transaction details.");
   }
 
-  return { authorizationUrl: authorizationUrl.toString(), reference: transaction.reference };
+  return { accessCode: transaction.access_code, reference: transaction.reference };
 }
 
 export async function verifyPaystackTransaction(reference) {
