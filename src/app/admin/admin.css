@@ -327,11 +327,16 @@
 .catalog-price-editor input { width:88px; flex:1 1 88px; }
 .catalog-item .catalog-name-editor button,.catalog-price-editor button { flex:0 0 auto; min-height:34px; margin:0; padding:0 9px; border:1px solid #725890; border-radius:6px; background:#725890; color:#fff; font-size:8px; font-weight:600; letter-spacing:.03em; text-decoration:none; text-transform:uppercase; }
 .catalog-item .catalog-name-editor button:hover,.catalog-price-editor button:hover { background:#fff; color:#63497f; }
+.catalog-item-save { justify-self:end; min-height:36px; margin:0; padding:0 16px; border:1px solid #f47732; border-radius:7px; background:#f47732; color:#fff; font-size:9px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; transition:background .18s ease,border-color .18s ease,transform .18s ease; }
+.catalog-item-save:hover:not(:disabled) { transform:translateY(-1px); border-color:#df5b1d; background:#df5b1d; }
+.catalog-item-save:focus-visible { outline:2px solid #f47732; outline-offset:3px; }
+.catalog-item-save:disabled { opacity:.65; cursor:wait; }
 @media (max-width:780px) {
   .catalog-item { grid-template-columns:minmax(0,1fr); }
   .catalog-editors { grid-template-columns:minmax(0,1fr); padding-left:0; }
   .catalog-price-editor { min-width:0; }
   .catalog-price-editor>div { max-width:none; }
+  .catalog-item-save { width:100%; }
 }
 
 .atelier-shell {
