@@ -1,4 +1,4 @@
-# SabbyBestCollection storefront
+# Virtuous Matess Ventures
 
 A polished, responsive Next.js ecommerce storefront with customer shopping and a private product-management workspace.
 
@@ -61,7 +61,7 @@ Add these values to `.env.local` for local development and to the deployment env
 
 ```dotenv
 RESEND_API_KEY=your-resend-api-key
-RESEND_FROM_EMAIL=SabbyBestCollection <verified-sender@example.com>
+RESEND_FROM_EMAIL=Virtuous Matess Ventures <verified-sender@example.com>
 ARKESEL_API_KEY=your-arkesel-main-api-key
 ARKESEL_SENDER_ID=your-registered-sender-id
 ```

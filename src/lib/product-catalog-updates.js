@@ -1,4 +1,4 @@
-const channelName = "sabbybestcollection-product-catalog-updates";
+const channelName = "virtuous-matess-ventures-product-catalog-updates";
 
 export function notifyProductCatalogUpdate() {
   if (typeof BroadcastChannel === "undefined") return;

@@ -31,7 +31,7 @@ async function sendPasswordResetEmail(email, code) {
     body: JSON.stringify({
       from,
       to: [email],
-      subject: "Your SabbyBestCollection password reset code",
+      subject: "Your Virtuous Matess Ventures password reset code",
       text: `Your password reset code is ${code}. It expires in five minutes. If you did not request this, you can ignore this email.`,
     }),
     signal: AbortSignal.timeout(10000),

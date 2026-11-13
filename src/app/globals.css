@@ -583,9 +583,6 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
 .customer-signup-screen .customer-auth-card form { margin-top:18px; }
 .customer-auth-card { width:min(100%,460px); margin:auto; padding:clamp(28px,4vw,42px); border:1px solid #e8deec; border-radius:22px; background:#fff; color:var(--ink); box-shadow:0 18px 48px rgba(84,34,97,.12),0 3px 10px rgba(80,58,42,.04); }
 .customer-auth-wordmark { display:flex; align-items:center; justify-content:center; gap:10px; margin:0 0 24px; }
-.customer-auth-monogram { display:grid; width:36px; height:36px; place-items:center; border-radius:50%; background:#f2eaf5; color:#713184; font:400 20px/1 Georgia,"Times New Roman",serif; }
-.customer-auth-brand-name { color:#342c36; font:400 20px/1 Georgia,"Times New Roman",serif; letter-spacing:-.025em; }
-.customer-auth-brand-name em { color:#713184; font-size:15px; font-style:normal; }
 .customer-auth-card h1 { margin:0; font:400 clamp(32px,5vw,42px)/1.05 Georgia,serif; letter-spacing:0; }
 .customer-auth-card h1,.customer-auth-intro { text-align:center; }
 .customer-auth-card h1 { color:#302638; font-size:clamp(29px,5vw,36px); }
@@ -816,14 +813,26 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
   gap:0;
 }
 .site-header .brand-mark:hover { opacity:.9; }
-.site-header .brand-mark img { display:block; width:100%; height:auto; max-height:100%; object-fit:contain; }
-.site-header .brand-mark .brand-word {
-  color:#f47732;
-  font:800 clamp(15px,1.65vw,21px)/1 Arial,Helvetica,sans-serif;
-  letter-spacing:-.065em;
-  white-space:nowrap;
+.site-header .brand-mark { justify-content:flex-start; overflow:visible; }
+.brand-wordmark { display:inline-flex; align-items:center; gap:8px; max-width:100%; color:#211c18; text-align:left; }
+.brand-wordmark-monogram { display:grid; width:30px; height:30px; flex:0 0 auto; place-items:center; border:1px solid #f47732; color:#d95c1d; font:700 9px/1 Georgia,"Times New Roman",serif; letter-spacing:-.08em; }
+.brand-wordmark-copy { display:flex; min-width:0; flex-direction:column; gap:3px; }
+.brand-wordmark-name { color:inherit; font:600 12px/1.05 Georgia,"Times New Roman",serif; letter-spacing:-.035em; white-space:nowrap; }
+.brand-wordmark-subtitle { color:inherit; font:600 7px/1 Arial,Helvetica,sans-serif; letter-spacing:.24em; text-transform:uppercase; }
+.customer-auth-wordmark .brand-wordmark-monogram { width:36px; height:36px; font-size:10px; }
+.customer-auth-wordmark .brand-wordmark-name { font-size:17px; }
+.customer-auth-wordmark .brand-wordmark-subtitle { font-size:8px; }
+@media (max-width:900px) {
+  .site-header .brand-wordmark { gap:6px; }
+  .site-header .brand-wordmark-monogram { width:26px; height:26px; font-size:8px; }
+  .site-header .brand-wordmark-name { font-size:11px; }
 }
-.site-header .brand-mark .brand-tradings { display:none; }
+@media (max-width:700px) {
+  .site-header .brand-wordmark { gap:5px; }
+  .site-header .brand-wordmark-monogram { width:22px; height:24px; font-size:7px; }
+  .site-header .brand-wordmark-name { font-size:10px; }
+  .site-header .brand-wordmark-subtitle { font-size:6px; }
+}
 .page-home .hero-tag { display:inline-flex; }
 .page-home .hero-tag:empty { display:none; }
 .main-nav {
@@ -1012,7 +1021,6 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
 @media (max-width:900px) {
   .site-header { grid-template-columns:minmax(100px,1fr) auto minmax(100px,1fr); gap:14px; }
   .site-header .brand-mark { width:122px; height:72px; }
-  .site-header .brand-mark img { width:120px; height:auto; max-height:70px; }
   .main-nav { gap:20px; }
   .hero { min-height:670px; grid-template-columns:minmax(0,1fr) minmax(0,.92fr); }
   .hero-copy { padding-left:5vw; }
@@ -1028,7 +1036,6 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
     gap:12px;
   }
   .site-header .brand-mark { width:108px; height:64px; border-radius:6px; }
-  .site-header .brand-mark img { width:106px; height:auto; max-height:62px; }
   .main-nav { display:none; }
   .header-actions { gap:11px; }
   .header-actions .icon-button { padding:3px; }
@@ -1681,8 +1688,6 @@ button:focus-visible,
   border-color:var(--line);
   box-shadow:0 18px 48px rgba(17,17,17,.1),0 3px 10px rgba(17,17,17,.035);
 }
-.page-view .customer-auth-monogram { background:var(--page-accent-soft); color:#111; }
-.page-view .customer-auth-brand-name em { color:#b84d12; }
 .page-view .customer-auth-card h1 { color:#111; }
 .page-view .customer-auth-card form input,
 .page-view .customer-auth-identifier { border-color:var(--line); background:#faf9f7; }

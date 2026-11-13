@@ -1,4 +1,4 @@
-const channelName = "sabbybestcollection-customer-order-updates";
+const channelName = "virtuous-matess-ventures-customer-order-updates";
 
 export function notifyCustomerOrderUpdate() {
   if (typeof BroadcastChannel === "undefined") return;

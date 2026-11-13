@@ -15,6 +15,7 @@ import LockIcon from "@mui/icons-material/LockOutlined";
 import HelpIcon from "@mui/icons-material/HelpOutlineOutlined";
 import LogoutIcon from "@mui/icons-material/LogoutOutlined";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import BrandWordmark from "./brand-wordmark";
 import { requestCustomerPasswordReset, resetCustomerPassword, signInCustomer, signOutCustomer, signUpCustomer, startCustomerVerification, verifyCustomerContact } from "../../lib/customer-auth-client";
 import { subscribeToCustomerOrderUpdates } from "../../lib/customer-order-updates";
 import { whatsappHref } from "../../lib/contact";
@@ -224,7 +225,7 @@ export default function CustomerAccount({ session, authChecked, authCheckError, 
                 try {
                   new Notification("Your order has been updated", {
                     body: `Order ${order.id.slice(0, 8).toUpperCase()} is now ${orderStatusLabel(order.status)}.`,
-                    tag: `sabbybestcollection-order-${order.id}`,
+                    tag: `virtuous-matess-ventures-order-${order.id}`,
                   });
                 } catch (error) {
                   console.error("Could not show browser order notification:", error);
@@ -486,9 +487,8 @@ export default function CustomerAccount({ session, authChecked, authCheckError, 
     const isResettingPassword = currentAuthMode === "reset";
     return <section className={`customer-account-root customer-auth-screen${isSigningUp ? " customer-signup-screen" : ""}`}>
       <div className="customer-auth-card">
-        <div className="customer-auth-wordmark" aria-label="SabbyBestCollection">
-          <span className="customer-auth-monogram">S</span>
-          <span className="customer-auth-brand-name">SabbyBestCollection</span>
+        <div className="customer-auth-wordmark" aria-label="Virtuous Matess Ventures">
+          <BrandWordmark />
         </div>
         <h1>{isSigningUp ? "Create your account" : isVerifying ? "Verify your contact" : isLoginVerification ? "Verify your phone" : isSettingPassword ? "Set your password" : isRecoveringPassword ? "Reset your password" : isResettingPassword ? "Choose a new password" : "Welcome Back"}</h1>
         <p className="customer-auth-intro">{isSigningUp
@@ -530,7 +530,7 @@ export default function CustomerAccount({ session, authChecked, authCheckError, 
           {message && <p className="customer-account-notice" role="status" aria-live="polite">{message}</p>}
           <button className="primary-button wide" type="submit" disabled={busy}>{busy ? (isSigningUp ? "Creating account…" : isSigningIn ? "Signing in…" : "Please wait…") : isRecoveringPassword ? "Send reset code" : isResettingPassword ? "Reset password" : isSigningUp ? "Create account" : isVerifying ? "Verify code" : isLoginVerification ? "Verify & Log In" : isSettingPassword ? "Create account" : "Log In"}</button>
         </form>
-        {isSigningUp || isSigningIn ? <p className="customer-auth-switch">{isSigningUp ? "Already have an account?" : "New to SabbyBestCollection?"}
+        {isSigningUp || isSigningIn ? <p className="customer-auth-switch">{isSigningUp ? "Already have an account?" : "New to Virtuous Matess Ventures?"}
           <button className="account-text-action" type="button" disabled={busy} onClick={() => { setAuthMode(isSigningUp ? "signin" : "signup"); setPasswordOnlyLogin(false); setMessage(""); setShowPassword(false); setShowConfirmPassword(false); setForm((current) => ({ ...current, password: "", confirmPassword: "", verificationCode: "" })); }}>
             {isSigningUp ? "Log In" : "Sign Up"}
           </button>

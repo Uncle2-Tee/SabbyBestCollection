@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "SabbyBestCollection — Style and home, considered",
-  description: "A thoughtful collection of fashion, home, and everyday essentials from SabbyBestCollection.",
+  title: "Virtuous Matess Ventures | Style, home, and everyday essentials",
+  description: "A thoughtful collection of fashion, home, and everyday essentials from Virtuous Matess Ventures.",
 };
 
 export default function RootLayout({ children }) {

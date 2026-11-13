@@ -22,8 +22,8 @@ async function sendEmailCode(email, code) {
     body: JSON.stringify({
       from,
       to: [email],
-      subject: "Your SabbyBestCollection verification code",
-      text: `Your SabbyBestCollection verification code is ${code}. It expires in five minutes.`,
+      subject: "Your Virtuous Matess Ventures verification code",
+      text: `Your Virtuous Matess Ventures verification code is ${code}. It expires in five minutes.`,
     }),
     signal: AbortSignal.timeout(10000),
   });

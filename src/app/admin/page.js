@@ -5,7 +5,7 @@ import AdminLogin from "./admin-login";
 import "./admin.css";
 
 export const metadata = {
-  title: "Store Admin | SabbyBestCollection",
+  title: "Store Admin | Virtuous Matess Ventures",
   robots: { index: false, follow: false },
 };
 

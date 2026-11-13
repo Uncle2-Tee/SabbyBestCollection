@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import LockResetIcon from "@mui/icons-material/LockReset";
 import CloseIcon from "@mui/icons-material/Close";
 import VisibilityIcon from "@mui/icons-material/VisibilityOutlined";
@@ -11,6 +10,7 @@ import { defaultProductCaution, defaultProductUsage, productCategories } from ".
 import { notifyCustomerOrderUpdate } from "../../lib/customer-order-updates";
 import { defaultHomepageImages } from "../../lib/homepage-images";
 import { notifyProductCatalogUpdate } from "../../lib/product-catalog-updates";
+import BrandWordmark from "../components/brand-wordmark";
 
 const money = new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS", minimumFractionDigits: 2 });
 const emptyForm = { name: "", category: "Dresses", price: "", size: "", image: "", description: "", howToUse: defaultProductUsage, caution: defaultProductCaution };
@@ -125,7 +125,7 @@ export default function AdminDashboard({ username }) {
             if (typeof Notification !== "undefined" && Notification.permission === "granted") {
               new Notification(arrived.length === 1 ? "New customer order" : `${arrived.length} new customer orders`, {
                 body: arrived.slice(0, 3).map((order) => `${order.customer_name} · ${money.format(Number(order.total))}`).join("\n"),
-                tag: "sabbybestcollection-new-orders",
+                tag: "virtuous-matess-ventures-new-orders",
               });
             }
           }
@@ -340,7 +340,7 @@ export default function AdminDashboard({ username }) {
   }
 
   return <main className="dashboard-shell">
-    <header className="dashboard-header"><div className="dashboard-brand-logo"><Image src="/sabby-best-collection-logo-transparent.png" alt="SabbyBestCollection" width={926} height={608} priority /></div><div className="dashboard-header-actions"><span className="secure-status">● Signed in as {username}</span><button type="button" className="dashboard-password-toggle" onClick={togglePasswordPanel} aria-expanded={passwordPanelOpen} aria-controls="admin-password-panel"><LockResetIcon fontSize="small" aria-hidden="true" />Change password</button><button onClick={signOut}>Sign out</button></div></header>
+    <header className="dashboard-header"><div className="dashboard-brand-logo"><BrandWordmark /></div><div className="dashboard-header-actions"><span className="secure-status">● Signed in as {username}</span><button type="button" className="dashboard-password-toggle" onClick={togglePasswordPanel} aria-expanded={passwordPanelOpen} aria-controls="admin-password-panel"><LockResetIcon fontSize="small" aria-hidden="true" />Change password</button><button onClick={signOut}>Sign out</button></div></header>
     {passwordPanelOpen && <section className="admin-password-panel" id="admin-password-panel" aria-labelledby="admin-password-heading">
       <div className="admin-password-panel-heading">
         <div><p className="atelier-kicker">Security</p><h2 id="admin-password-heading">Change password</h2></div>

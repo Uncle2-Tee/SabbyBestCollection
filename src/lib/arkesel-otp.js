@@ -42,7 +42,7 @@ export async function sendArkeselOtp(number) {
       expiry: "5",
       length: "6",
       medium: "sms",
-      message: "Your SabbyBestCollection verification code is %otp_code%. It expires in 5 minutes.",
+      message: "Your Virtuous Matess Ventures verification code is %otp_code%. It expires in 5 minutes.",
       number,
       sender_id: senderId,
       type: "numeric",
