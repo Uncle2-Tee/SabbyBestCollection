@@ -9,7 +9,6 @@ import FavoriteIcon from "@mui/icons-material/FavoriteBorder";
 import ShoppingBagIcon from "@mui/icons-material/ShoppingBagOutlined";
 import LocationIcon from "@mui/icons-material/LocationOnOutlined";
 import CreditCardIcon from "@mui/icons-material/CreditCardOutlined";
-import NotificationsIcon from "@mui/icons-material/NotificationsNone";
 import SettingsIcon from "@mui/icons-material/SettingsOutlined";
 import LockIcon from "@mui/icons-material/LockOutlined";
 import HelpIcon from "@mui/icons-material/HelpOutlineOutlined";
@@ -20,20 +19,13 @@ import { requestCustomerPasswordReset, resetCustomerPassword, signInCustomer, si
 import { subscribeToCustomerOrderUpdates } from "../../lib/customer-order-updates";
 import { whatsappHref } from "../../lib/contact";
 
-const notificationPreferenceKey = (userId) => `sabbybestcollection:order-notifications:${userId}`;
-
-function orderStatusLabel(status) {
-  return status.replaceAll("_", " ");
-}
-
 const accountSections = [
   { id: "profile", label: "My Profile", icon: PersonIcon },
   { id: "orders", label: "My Orders", icon: ReceiptIcon },
   { id: "wishlist", label: "Wishlist", icon: FavoriteIcon },
   { id: "cart", label: "Cart", icon: ShoppingBagIcon },
   { id: "addresses", label: "Delivery Addresses", icon: LocationIcon },
-  { id: "payments", label: "Payment Methods", icon: CreditCardIcon },
-  { id: "notifications", label: "Notifications", icon: NotificationsIcon },
+  { id: "payments", label: "Payments", icon: CreditCardIcon },
   { id: "settings", label: "Settings", icon: SettingsIcon },
   { id: "support", label: "Help & Support", icon: HelpIcon },
 ];
@@ -65,6 +57,8 @@ export default function CustomerAccount({ session, authChecked, authCheckError, 
   const [showConfirmAccountPassword, setShowConfirmAccountPassword] = useState(false);
   const [orders, setOrders] = useState(null);
   const [ordersError, setOrdersError] = useState("");
+  const [paymentReceipts, setPaymentReceipts] = useState(null);
+  const [paymentReceiptsError, setPaymentReceiptsError] = useState("");
   const [busy, setBusy] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [message, setMessage] = useState("");
@@ -87,12 +81,6 @@ export default function CustomerAccount({ session, authChecked, authCheckError, 
   });
   const [deliverySaveStatus, setDeliverySaveStatus] = useState("");
   const profileSaveInFlight = useRef(false);
-  const [notificationPermission, setNotificationPermission] = useState(null);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [notificationMessage, setNotificationMessage] = useState("");
-  const notificationEnabledRef = useRef(false);
-  const orderStatuses = useRef(new Map());
-  const initialOrdersLoaded = useRef(false);
   const authSubmitInFlight = useRef(false);
 
   useEffect(() => {
@@ -108,18 +96,6 @@ export default function CustomerAccount({ session, authChecked, authCheckError, 
       authIdentifierRef.current?.focus();
     }
   }, [authMode, passwordOnlyLogin, session]);
-
-  useEffect(() => {
-    const user = session?.user;
-    if (!user) return;
-    const timer = window.setTimeout(() => {
-      const permission = typeof Notification === "undefined" ? "unsupported" : Notification.permission;
-      setNotificationPermission(permission);
-      setNotificationsEnabled(permission === "granted"
-        && window.localStorage.getItem(notificationPreferenceKey(user.id)) === "true");
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [session]);
 
   useEffect(() => {
     const userId = session?.user?.id;
@@ -204,10 +180,6 @@ export default function CustomerAccount({ session, authChecked, authCheckError, 
   }, [accountSettings.deliveryAddress, accountSettings.deliveryCity, session, onAccountUpdated]);
 
   useEffect(() => {
-    notificationEnabledRef.current = notificationsEnabled;
-  }, [notificationsEnabled]);
-
-  useEffect(() => {
     if (!session?.user?.id) return undefined;
     let cancelled = false;
     let requestInFlight = false;
@@ -217,24 +189,6 @@ export default function CustomerAccount({ session, authChecked, authCheckError, 
       try {
         const { orders: savedOrders } = await apiJson(await fetch("/api/orders", { cache: "no-store" }));
         if (!cancelled) {
-          const nextStatuses = new Map(savedOrders.map((order) => [order.id, order.status]));
-          if (initialOrdersLoaded.current && notificationEnabledRef.current && typeof Notification !== "undefined" && Notification.permission === "granted") {
-            savedOrders.forEach((order) => {
-              const previousStatus = orderStatuses.current.get(order.id);
-              if (previousStatus !== undefined && previousStatus !== order.status) {
-                try {
-                  new Notification("Your order has been updated", {
-                    body: `Order ${order.id.slice(0, 8).toUpperCase()} is now ${orderStatusLabel(order.status)}.`,
-                    tag: `virtuous-matess-ventures-order-${order.id}`,
-                  });
-                } catch (error) {
-                  console.error("Could not show browser order notification:", error);
-                }
-              }
-            });
-          }
-          orderStatuses.current = nextStatuses;
-          initialOrdersLoaded.current = true;
           setOrders(savedOrders);
           setOrdersError("");
         }
@@ -256,14 +210,34 @@ export default function CustomerAccount({ session, authChecked, authCheckError, 
     document.addEventListener("visibilitychange", refreshWhenVisible);
     return () => {
       cancelled = true;
-      initialOrdersLoaded.current = false;
-      orderStatuses.current = new Map();
       window.clearInterval(interval);
       unsubscribeFromOrderUpdates();
       window.removeEventListener("focus", refreshWhenVisible);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, [session, refreshKey]);
+
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!userId || activeSection !== "payments") return undefined;
+    let cancelled = false;
+    fetch("/api/customer/payments", { cache: "no-store" })
+      .then(apiJson)
+      .then(({ receipts: savedReceipts }) => {
+        if (!Array.isArray(savedReceipts)) throw new Error("The payment receipt response is invalid.");
+        if (!cancelled) {
+          setPaymentReceipts(savedReceipts);
+          setPaymentReceiptsError("");
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.error("Could not load customer payment receipts:", error);
+          setPaymentReceiptsError(error.message || "Could not load your payment receipts.");
+        }
+      });
+    return () => { cancelled = true; };
+  }, [session?.user?.id, activeSection, refreshKey]);
 
   async function submitAuth(event) {
     event.preventDefault();
@@ -427,40 +401,6 @@ export default function CustomerAccount({ session, authChecked, authCheckError, 
     }
   }
 
-  async function toggleOrderNotifications() {
-    setNotificationMessage("");
-    if (notificationsEnabled) {
-      setNotificationsEnabled(false);
-      window.localStorage.setItem(notificationPreferenceKey(session.user.id), "false");
-      setNotificationMessage("Browser order notifications are turned off.");
-      return;
-    }
-    if (typeof Notification === "undefined") {
-      setNotificationMessage("Browser notifications are not supported in this browser.");
-      return;
-    }
-    let permission = Notification.permission;
-    if (permission === "default") {
-      try {
-        permission = await Notification.requestPermission();
-      } catch (error) {
-        console.error("Could not request browser notification permission:", error);
-        setNotificationMessage("Your browser could not request notification permission. Check its site settings and try again.");
-        return;
-      }
-    }
-    setNotificationPermission(permission);
-    if (permission !== "granted") {
-      setNotificationMessage(permission === "denied"
-        ? "Notifications are blocked by your browser. Allow them in your browser settings to turn them on."
-        : "Browser notification permission was not granted.");
-      return;
-    }
-    setNotificationsEnabled(true);
-    window.localStorage.setItem(notificationPreferenceKey(session.user.id), "true");
-    setNotificationMessage("You’ll get a browser notification when an order status changes while you’re signed in.");
-  }
-
   if (!session?.user && !authChecked) {
     return <section className="customer-account-root customer-auth-screen" aria-live="polite">
       <div className="customer-auth-card"><h1>Restoring your account</h1><p className="customer-auth-intro">Checking your saved sign-in. Please wait a moment.</p></div>
@@ -587,29 +527,39 @@ export default function CustomerAccount({ session, authChecked, authCheckError, 
         </section>}
         {activeSection === "profile" && <div className="account-empty"><p className="eyebrow">Your details</p><h2>My Profile</h2><p><strong>Name</strong><br />{fullName}</p>{session.user.username && <p><strong>Username</strong><br />{session.user.username}</p>}{session.user.phone && <p><strong>Phone number</strong><br />{session.user.phone}</p>}</div>}
         {activeSection === "addresses" && <section className="customer-account-tools"><div className="account-section-heading"><div><p className="eyebrow">Delivery details</p><h2>Delivery Addresses</h2></div></div><article className="account-tool-card account-settings-form"><p className="account-tool-muted">These details are saved automatically and can be edited anytime.</p><label htmlFor="account-delivery-address">Delivery address<textarea id="account-delivery-address" autoComplete="street-address" minLength={8} value={accountSettings.deliveryAddress} onChange={(event) => { setDeliverySaveStatus(""); setAccountSettings((current) => ({ ...current, deliveryAddress: event.target.value })); }} placeholder="House number, street, landmark" /></label><label htmlFor="account-delivery-city">City / town<input id="account-delivery-city" autoComplete="address-level2" minLength={2} value={accountSettings.deliveryCity} onChange={(event) => { setDeliverySaveStatus(""); setAccountSettings((current) => ({ ...current, deliveryCity: event.target.value })); }} placeholder="e.g. Accra" /></label><p className="account-profile-save-status" role="status" aria-live="polite">{deliverySaveStatus || "Your saved details will be used at checkout."}</p></article></section>}
-        {activeSection === "payments" && <div className="account-empty"><p className="eyebrow">Secure payments</p><h2>Payment Methods</h2><p>Payments are processed securely through Paystack. Payment card details are not stored in your account.</p></div>}
-        {activeSection === "notifications" && <section className="customer-account-tools">
-          <div className="account-section-heading"><div><p className="eyebrow">Stay in the loop</p><h2>Notifications</h2></div></div>
-          <article className="account-tool-card">
-            <div className="account-tool-heading"><div><NotificationsIcon aria-hidden="true" /><div><h3>Order status updates</h3><p>See the latest payment, processing, and delivery status for your orders.</p></div></div></div>
-            {orders === null && <p className="customer-account-notice">Loading your order updates…</p>}
-            {ordersError && <p className="customer-account-notice" role="alert">{ordersError}</p>}
-            {!ordersError && orders?.length === 0 && <p className="account-tool-muted">No order updates yet. Updates will appear here after you place an order.</p>}
-            {(orders || []).map((order) => <article className="account-notification-item" key={order.id}>
-              <span className="account-notification-status"><span aria-hidden="true" />{orderStatusLabel(order.status)}</span>
-              <div><strong>Order {order.id.slice(0, 8).toUpperCase()}</strong><p>{formatDate(order.created_at)} · {new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS" }).format(Number(order.total))}</p></div>
-            </article>)}
-          </article>
-          <article className="account-tool-card account-notification-preference">
-            <div className="account-tool-heading"><div><NotificationsIcon aria-hidden="true" /><div><h3>Browser notifications</h3><p>Get an alert when an order’s status changes while this account is open.</p></div></div>
-              {notificationPermission === "unsupported"
-                ? <span className="account-tool-muted">Not supported</span>
-                : <button className="account-preference-toggle" type="button" onClick={toggleOrderNotifications} disabled={notificationPermission === null} aria-pressed={notificationsEnabled}>{notificationsEnabled ? "Turn off" : "Turn on"}</button>}
-            </div>
-            {notificationPermission === "denied" && <p className="account-tool-muted">Notifications are blocked in your browser. Update your browser’s site permissions to enable them.</p>}
-            {notificationMessage && <p className="customer-account-notice" role="status">{notificationMessage}</p>}
-            <p className="account-tool-muted">Email and SMS alerts aren’t available yet. Browser notifications are saved for this device.</p>
-          </article>
+        {activeSection === "payments" && <section className="customer-account-tools payment-receipts" aria-labelledby="payment-receipts-heading">
+          <div className="account-section-heading">
+            <div><p className="eyebrow">Secure payments</p><h2 id="payment-receipts-heading">Payment receipts</h2></div>
+            {paymentReceipts && <span>{paymentReceipts.length} {paymentReceipts.length === 1 ? "receipt" : "receipts"}</span>}
+          </div>
+          <p className="payment-receipts-intro">Verified Paystack payments are recorded here with their order and transaction details.</p>
+          {paymentReceipts === null && !paymentReceiptsError && <p className="customer-account-notice">Loading your payment receipts…</p>}
+          {paymentReceiptsError && <p className="customer-account-notice" role="alert">{paymentReceiptsError}</p>}
+          {paymentReceipts?.length === 0 && !paymentReceiptsError && <div className="payment-receipts-empty"><ReceiptIcon aria-hidden="true" /><h3>No receipts yet</h3><p>Your receipt will appear here after a payment is verified.</p></div>}
+          {paymentReceipts?.length > 0 && <div className="payment-receipt-list">
+            {paymentReceipts.map((receipt) => (
+              <article className="payment-receipt" key={receipt.reference}>
+                <header className="payment-receipt-header">
+                  <div><p className="eyebrow">Payment receipt</p><h3>Order #{receipt.order_id.slice(0, 8).toUpperCase()}</h3></div>
+                  <span className="payment-receipt-status">Paid</span>
+                </header>
+                {Array.isArray(receipt.items) && receipt.items.length > 0 && <ul className="payment-receipt-items">
+                  {receipt.items.map((item, index) => (
+                    <li key={`${receipt.reference}-${item.product_id || item.name || index}`}>
+                      <span>{item.name} × {item.quantity}</span>
+                      <b>{new Intl.NumberFormat("en-GH", { style: "currency", currency: receipt.currency }).format(Number(item.line_total ?? Number(item.price) * Number(item.quantity)))}</b>
+                    </li>
+                  ))}
+                </ul>}
+                <dl className="payment-receipt-details">
+                  <div><dt>Amount paid</dt><dd>{new Intl.NumberFormat("en-GH", { style: "currency", currency: receipt.currency }).format(receipt.amount)}</dd></div>
+                  <div><dt>Paid on</dt><dd>{formatDate(receipt.paid_at)}</dd></div>
+                  <div><dt>Method</dt><dd>Paystack</dd></div>
+                  <div className="payment-receipt-reference"><dt>Transaction reference</dt><dd><code>{receipt.reference}</code></dd></div>
+                </dl>
+              </article>
+            ))}
+          </div>}
         </section>}
         {activeSection === "settings" && <section className="customer-account-tools">
           <div className="account-section-heading"><div><p className="eyebrow">Profile &amp; security</p><h2>Settings</h2></div></div>

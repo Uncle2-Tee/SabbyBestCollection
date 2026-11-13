@@ -8,18 +8,12 @@ import VisibilityIcon from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOffOutlined";
 import { defaultProductCaution, defaultProductUsage, productCategories } from "../../lib/catalog";
 import { notifyCustomerOrderUpdate } from "../../lib/customer-order-updates";
-import { defaultHomepageImages } from "../../lib/homepage-images";
 import { notifyProductCatalogUpdate } from "../../lib/product-catalog-updates";
 import BrandWordmark from "../components/brand-wordmark";
 
 const money = new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS", minimumFractionDigits: 2 });
 const emptyForm = { name: "", category: "Dresses", price: "", size: "", image: "", description: "", howToUse: defaultProductUsage, caution: defaultProductCaution };
 const orderStatuses = ["awaiting_payment", "payment_review", "processing", "shipped", "delivered", "cancelled"];
-const homepageImageFields = [
-  { key: "heroLookbook", label: "Lookbook overlay", description: "The tilted supporting image positioned on the left." },
-  { key: "heroDetail", label: "Detail overlay", description: "The tilted supporting image positioned on the right." },
-  { key: "heroShoe", label: "Sneakers overlay", description: "The supporting sneakers image positioned in the upper right." },
-];
 
 function timeBasedGreeting() {
   const hour = new Date().getHours();
@@ -59,9 +53,6 @@ export default function AdminDashboard({ username }) {
   const [nameDrafts, setNameDrafts] = useState({});
   const [priceDrafts, setPriceDrafts] = useState({});
   const [savingProductIds, setSavingProductIds] = useState({});
-  const [homepageImages, setHomepageImages] = useState(defaultHomepageImages);
-  const [homepageImagesSaving, setHomepageImagesSaving] = useState(false);
-  const [homepageImageUploading, setHomepageImageUploading] = useState("");
   const [message, setMessage] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
   const [databaseReady, setDatabaseReady] = useState(false);
@@ -91,17 +82,6 @@ export default function AdminDashboard({ username }) {
         if (cancelled) return;
         setProducts(saved);
         setDatabaseReady(true);
-      })
-      .catch((error) => { if (!cancelled) setMessage(error.message); });
-    return () => { cancelled = true; };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/admin/homepage")
-      .then(readApiResponse)
-      .then(({ images }) => {
-        if (!cancelled) setHomepageImages(images);
       })
       .catch((error) => { if (!cancelled) setMessage(error.message); });
     return () => { cancelled = true; };
@@ -191,40 +171,6 @@ export default function AdminDashboard({ username }) {
       setMessage(`${file.name} uploaded.`);
     } catch (error) { setMessage(error.message); }
     finally { setUploadingImage(false); }
-  }
-
-  async function handleHomepageImageUpload(key, event) {
-    const file = event.currentTarget.files?.[0];
-    const input = event.currentTarget;
-    if (!file || homepageImageUploading) return;
-    setHomepageImageUploading(key);
-    try {
-      const url = await uploadImageFile(file);
-      setHomepageImages((current) => ({ ...current, [key]: url }));
-      setMessage(`${file.name} uploaded. Save homepage images to publish it.`);
-    } catch (error) {
-      setMessage(error.message);
-    } finally {
-      input.value = "";
-      setHomepageImageUploading("");
-    }
-  }
-
-  async function saveHomepageImages() {
-    setHomepageImagesSaving(true);
-    try {
-      const { images } = await readApiResponse(await fetch("/api/admin/homepage", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ images: homepageImages }),
-      }));
-      setHomepageImages(images);
-      setMessage("Homepage images updated.");
-    } catch (error) {
-      setMessage(error.message || "Could not save homepage images.");
-    } finally {
-      setHomepageImagesSaving(false);
-    }
   }
 
   async function deleteProduct(product) {
@@ -367,24 +313,7 @@ export default function AdminDashboard({ username }) {
     </section>}
     <section className="dashboard-heading"><p className="atelier-kicker">Store administration</p><h1>{greeting}</h1><p>Keep your collection polished, current, and ready to shop.</p></section>
     {message && !databaseReady && <p className="database-warning" role="alert">{message} Check DATABASE_URL in your environment and run `npx prisma db push` if the schema has not been applied.</p>}
-    <section className="dashboard-overview-grid" aria-label="Storefront images and customer activity">
-      <details className="homepage-images-panel admin-dropdown-card">
-        <summary className="homepage-images-summary">
-          <span><span className="atelier-kicker">Storefront</span><strong id="homepage-images-heading">Home page images</strong></span>
-          <span className="homepage-images-summary-note">Manage hero photos <span className="admin-dropdown-chevron" aria-hidden="true">⌄</span></span>
-        </summary>
-        <div className="homepage-images-content">
-          <p className="homepage-images-description">Choose the three supporting hero images. The full-bleed home background is permanent.</p>
-          <div className="homepage-image-grid">{homepageImageFields.map(({ key, label, description }) => (
-            <div className="homepage-image-card" key={key}>
-              <div className="homepage-image-preview" role="img" aria-label={`${label} preview`} style={{ backgroundImage: `url("${homepageImages[key]}")` }} />
-              <div className="homepage-image-details"><strong>{label}</strong><span>{description}</span></div>
-              <label className="homepage-image-upload">Choose image<input type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/gif" onChange={(event) => handleHomepageImageUpload(key, event)} disabled={!databaseReady || Boolean(homepageImageUploading)} /></label>
-            </div>
-          ))}</div>
-          <button className="homepage-images-save" type="button" onClick={saveHomepageImages} disabled={!databaseReady || homepageImagesSaving || Boolean(homepageImageUploading)}>{homepageImagesSaving ? "Saving…" : "Save home page images"}</button>
-        </div>
-      </details>
+    <section className="dashboard-overview-grid" aria-label="Customer activity">
       <details className="orders-panel admin-dropdown-card">
       <summary className="orders-panel-heading admin-dropdown-summary">
         <span className="orders-panel-heading-copy"><span className="atelier-kicker">Customer activity</span><strong id="orders-heading">Orders <span className="orders-count">{orders.length}</span></strong></span>
