@@ -26,7 +26,7 @@ import StarIcon from "@mui/icons-material/StarRounded";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import Script from "next/script";
 import { initialProducts, productCategories } from "../lib/catalog";
-import { defaultHomepageImages, permanentHomepageBackground } from "../lib/homepage-images";
+import { permanentHomepageBackground } from "../lib/homepage-images";
 import CustomerAccount from "./components/customer-account";
 import BrandWordmark from "./components/brand-wordmark";
 import { getCustomerSession } from "../lib/customer-auth-client";
@@ -65,7 +65,6 @@ function AccountEmptyState({ title, message, action, onAction }) {
 
 export default function Home() {
   const [products, setProducts] = useState(initialProducts);
-  const [homepageImages, setHomepageImages] = useState(defaultHomepageImages);
   const [cart, setCart] = useState([]);
   const [cartHydrated, setCartHydrated] = useState(false);
   const [wishlist, setWishlist] = useState([]);
@@ -138,22 +137,6 @@ export default function Home() {
       console.error("Could not save the cart:", error);
     }
   }, [cart, cartHydrated]);
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/homepage", { cache: "no-store" })
-      .then(async (response) => {
-        const body = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(body.error || "Could not load homepage images.");
-        if (!body.images || !Object.keys(defaultHomepageImages).every((key) => typeof body.images[key] === "string")) {
-          throw new Error("The homepage image settings are invalid.");
-        }
-        if (!cancelled) setHomepageImages(body.images);
-      })
-      .catch((error) => {
-        if (!cancelled) console.error("Could not load homepage images:", error);
-      });
-    return () => { cancelled = true; };
-  }, []);
   useEffect(() => {
     if (!loaded || !authChecked) return undefined;
     const userId = customerSession?.user?.id;
@@ -547,7 +530,22 @@ export default function Home() {
         <button className="primary-button" onClick={() => navigateTo("shop")}>Continue Shopping <Icon name="arrow" size={17} /></button>
       </div>}
     </section>}
-    <section className="hero" id="top" style={{ "--hero-background-image": `url("${permanentHomepageBackground}")` }}><div className="hero-copy"><p className="hero-tag"></p><h1><span className="hero-heading-line">Discover</span><br /><span className="hero-heading-line">Style That</span><br /><span className="hero-heading-line">Defines You</span></h1><p className="hero-text">Elevate your style with our curated collection of premium essentials. Thoughtful picks, unmatched quality.</p><div className="hero-actions"><button onClick={() => navigateTo("shop")} className="primary-button">Shop Now </button><button onClick={() => navigateTo("categories")} className="secondary-button"><span aria-hidden="true">▷</span> View Lookbook</button></div><div className="hero-benefits"><span><Icon name="help" size={15} /> 24/7 Support</span></div></div><div className="hero-visual" aria-label="Explore the latest Virtuous Matess Ventures looks"><div className="hero-editorial-image" role="img" aria-label="Model wearing an elegant orange outfit" style={{ backgroundImage: `url("${homepageImages.heroEditorial}")` }} /><div className="hero-lookbook-image" role="img" aria-label="A look from the new collection" style={{ backgroundImage: `url("${homepageImages.heroLookbook}")` }} /><div className="hero-detail-image" role="img" aria-label="A closer look at the latest collection" style={{ backgroundImage: `url("${homepageImages.heroDetail}")` }} /><div className="hero-shoe-image" role="img" aria-label="City everyday sneakers" style={{ backgroundImage: `url("${homepageImages.heroShoe}")` }} /></div></section>
+    <section className="hero" id="top" style={{ "--hero-background-image": `url("${permanentHomepageBackground}")` }}>
+      <div className="hero-copy">
+        <p className="hero-tag"></p>
+        <h1>
+          <span className="hero-heading-line">Discover</span><br />
+          <span className="hero-heading-line">Style That</span><br />
+          <span className="hero-heading-line">Defines You <span className="hero-brand-name">With Virtuous Matess</span></span>
+        </h1>
+        <p className="hero-text">Elevate your style with our curated collection of premium essentials. Thoughtful picks, unmatched quality.</p>
+        <div className="hero-actions">
+          <button onClick={() => navigateTo("shop")} className="primary-button">Shop Now </button>
+          <button onClick={() => navigateTo("categories")} className="secondary-button"><span aria-hidden="true">▷</span> View Lookbook</button>
+        </div>
+        <div className="hero-benefits"><span><Icon name="help" size={15} /> 24/7 Support</span></div>
+      </div>
+    </section>
     {(activeView === "shop" || activeView === "categories" || activeView === "about") && <>
       <section className={`shop-section${activeView === "categories" ? " category-shop-section" : ""}`} id="shop">
         <header className="catalog-heading">
