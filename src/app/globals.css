@@ -1,25 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --ink:#172a40;
-  --sage:#f2e8d3;
-  --cream:#f6f1e7;
-  --paper:#fffdf8;
-  --clay:#c29342;
-  --line:rgba(23,42,64,.13);
-  --muted:#647181;
-  --plum:#183a57;
-  --rose:#c29342;
-  --blush:#f4ead5;
-  --system-button:#c29342;
-  --system-button-hover:#a97831;
-  --system-button-text:#172a40;
-  --gradient-surface:linear-gradient(135deg,#fffdf8 0%,#f4efe4 56%,#e8eff2 100%);
-  --gradient-card:linear-gradient(145deg,#fffefa 0%,#f7f1e4 100%);
-  --gradient-navy:linear-gradient(120deg,#142940 0%,#244e6a 100%);
-  --gradient-gold:linear-gradient(115deg,#f1d88f 0%,#d1a34d 56%,#ae7831 100%);
-  --gradient-hero-overlay:linear-gradient(105deg,rgba(12,31,52,.88) 0%,rgba(20,48,70,.68) 48%,rgba(173,125,48,.25) 100%);
-  --gradient-hero-overlay-mobile:linear-gradient(180deg,rgba(12,31,52,.84) 0%,rgba(20,48,70,.64) 58%,rgba(173,125,48,.34) 100%);
+  --ink:#141416;
+  --sage:#f5e7dd;
+  --cream:#f7f3ef;
+  --paper:#fffdfa;
+  --clay:#f26722;
+  --line:rgba(20,20,22,.12);
+  --muted:#68686c;
+  --plum:#29292d;
+  --rose:#f26722;
+  --blush:#fff0e5;
+  --system-button:#f26722;
+  --system-button-hover:#c94b13;
+  --system-button-text:#fff;
+  --gradient-surface:linear-gradient(135deg,#fffdfa 0%,#f7f3ef 56%,#ece9e6 100%);
+  --gradient-card:linear-gradient(145deg,#fffdfa 0%,#f6f2ee 100%);
+  --gradient-navy:linear-gradient(120deg,#141416 0%,#36373a 100%);
+  --gradient-gold:linear-gradient(115deg,#ff9b53 0%,#f26722 56%,#c94b13 100%);
+  --gradient-hero-overlay:linear-gradient(105deg,rgba(9,10,12,.9) 0%,rgba(18,18,20,.76) 48%,rgba(242,103,34,.31) 100%);
+  --gradient-hero-overlay-mobile:linear-gradient(180deg,rgba(9,10,12,.88) 0%,rgba(18,18,20,.74) 58%,rgba(242,103,34,.38) 100%);
 }
 * { box-sizing:border-box; }
 html { scroll-behavior:smooth; }
@@ -1436,22 +1436,22 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
 .page-about,
 .page-account,
 .page-wishlist {
-  --page-accent:#c29342;
-  --page-accent-dark:#8d652d;
-  --page-accent-soft:#f4ead5;
+  --page-accent:#f26722;
+  --page-accent-dark:#b94710;
+  --page-accent-soft:#fff0e5;
   --page-surface:var(--gradient-surface);
 }
 .page-view { background:var(--page-surface); color:var(--ink); }
 .page-view .site-header {
   border-bottom-color:var(--line);
   background:var(--gradient-surface);
-  box-shadow:0 4px 20px rgba(20,40,63,.07);
+  box-shadow:0 4px 20px rgba(20,20,22,.07);
 }
 .page-view .main-nav {
-  border:1px solid rgba(194,147,66,.38);
+  border:1px solid rgba(242,103,34,.3);
   border-radius:999px;
   background:var(--gradient-card);
-  box-shadow:inset 0 1px 2px rgba(20,40,63,.04);
+  box-shadow:inset 0 1px 2px rgba(20,20,22,.04);
   padding:5px 12px;
 }
 .page-view .main-nav button { color:#333; }
@@ -1459,17 +1459,17 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
 .page-view .main-nav button.active {
   background:var(--gradient-navy);
   color:#fff;
-  box-shadow:0 3px 8px rgba(20,40,63,.2);
+  box-shadow:0 3px 8px rgba(20,20,22,.18);
 }
 .page-view .header-actions .icon-button,
 .page-view .bag-button { color:var(--ink); background:var(--paper); }
 .page-view .header-actions .icon-button:hover,
 .page-view .bag-button:hover { color:var(--ink); background:var(--page-accent-soft); }
 .page-view .bag-button b { background:var(--gradient-gold); color:var(--ink); }
-.page-view .mobile-bottom-nav { border-color:color-mix(in srgb,var(--page-accent) 26%,white); background:linear-gradient(135deg,rgba(255,253,248,.98),rgba(243,235,219,.98)); }
+.page-view .mobile-bottom-nav { border-color:color-mix(in srgb,var(--page-accent) 26%,white); background:linear-gradient(135deg,rgba(255,253,250,.98),rgba(244,240,236,.98)); }
 .page-view .mobile-bottom-nav button.active,
 .page-view .mobile-bottom-nav button.active svg { background:var(--page-accent-soft); color:var(--page-accent-dark); }
-.page-view .catalog-search-popover { border-color:rgba(194,147,66,.32); }
+.page-view .catalog-search-popover { border-color:rgba(242,103,34,.3); }
 .page-view .catalog-search-popover>button { background:var(--page-accent-soft); color:var(--page-accent-dark); }
 .page-view .eyebrow,
 .page-view .product-info .eyebrow { color:var(--page-accent-dark); }
@@ -1524,7 +1524,7 @@ button,input,select,textarea { font:inherit; } button { cursor:pointer; touch-ac
   color:var(--page-accent-dark);
 }
 .page-view .customer-auth-switch .account-text-action:hover,
-.page-view .customer-auth-identifier .account-text-action:hover { color:#735225; }
+.page-view .customer-auth-identifier .account-text-action:hover { color:var(--page-accent-dark); }
 button:focus-visible,
 .page-view input:focus-visible,
 .page-view select:focus-visible,
@@ -1547,7 +1547,7 @@ button:focus-visible,
 .page-home .hero {
   position:relative;
   isolation:isolate;
-  background-color:#142940;
+  background-color:#141416;
   background-image:
     var(--gradient-hero-overlay),
     var(--hero-background-image);
@@ -1655,7 +1655,7 @@ button:focus-visible,
 }
 .page-home .hero-actions .secondary-button {
   border-color:var(--page-accent);
-  background:linear-gradient(120deg,rgba(241,216,143,.2),rgba(36,78,106,.32));
+  background:linear-gradient(120deg,rgba(242,103,34,.22),rgba(20,20,22,.5));
   color:var(--page-accent);
   backdrop-filter:blur(8px);
 }
@@ -1724,9 +1724,9 @@ button:focus-visible,
 .page-view .customer-auth-identifier { border-color:var(--line); background:#faf9f7; }
 .page-view .customer-auth-card form input:focus-visible {
   border-color:var(--page-accent);
-  box-shadow:0 0 0 3px rgba(194,147,66,.18);
+  box-shadow:0 0 0 3px rgba(242,103,34,.18);
 }
-.page-view .customer-auth-card form .primary-button:focus-visible { outline-color:rgba(194,147,66,.34); }
+.page-view .customer-auth-card form .primary-button:focus-visible { outline-color:rgba(242,103,34,.34); }
 .page-view .customer-auth-card form .primary-button { box-shadow:0 7px 15px rgba(17,17,17,.14); }
 .page-view .customer-auth-card form .primary-button:hover:not(:disabled) { box-shadow:0 9px 18px rgba(232,95,29,.2); }
 
@@ -1762,5 +1762,14 @@ button:focus-visible,
 .page-view .checkout-form input:focus,
 .page-view .checkout-form textarea:focus {
   border-color:var(--page-accent);
-  outline-color:rgba(194,147,66,.2);
+  outline-color:rgba(242,103,34,.2);
 }
+
+.page-view .site-header {
+  border-bottom:1px solid var(--page-accent);
+}
+.page-home .hero h1 {
+  color:#fff;
+  text-shadow:0 3px 20px rgba(0,0,0,.45);
+}
+.page-home .hero h1 em { color:var(--page-accent); }
