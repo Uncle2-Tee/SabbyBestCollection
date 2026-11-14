@@ -30,6 +30,15 @@ model Product {
   @@map("products")
 }
 
+model ProductCategory {
+  id             String   @id @default(cuid())
+  name           String
+  normalizedName String   @unique @map("normalized_name")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("product_categories")
+}
+
 model Order {
   id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId          String   @map("user_id") @db.Uuid

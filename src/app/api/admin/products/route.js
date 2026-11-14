@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { ADMIN_SESSION_COOKIE, hasValidAdminSession } from "../../../../lib/admin-auth";
+import { mergeProductCategories, productCategories } from "../../../../lib/catalog";
 import { prisma } from "../../../../lib/prisma";
 import { productFromDatabaseRow, productToDatabaseRow, validProduct } from "../../../../lib/products";
 
@@ -19,8 +20,18 @@ export async function GET() {
   if (!(await requireAdmin())) return NextResponse.json({ error: "Admin sign-in required." }, { status: 401 });
   if (!process.env.DATABASE_URL) return databaseUnavailable();
   try {
-    const products = await prisma.product.findMany({ orderBy: { sortOrder: "asc" } });
-    return NextResponse.json({ products: products.map(productFromDatabaseRow) });
+    const [products, savedCategories] = await Promise.all([
+      prisma.product.findMany({ orderBy: { sortOrder: "asc" } }),
+      prisma.productCategory.findMany({ orderBy: { createdAt: "asc" }, select: { name: true } }),
+    ]);
+    return NextResponse.json({
+      products: products.map(productFromDatabaseRow),
+      categories: mergeProductCategories(
+        productCategories,
+        savedCategories.map((category) => category.name),
+        products.map((product) => product.category),
+      ),
+    });
   } catch (error) {
     console.error("Admin could not read product catalogue:", error);
     return NextResponse.json({ error: "Could not load products from the database." }, { status: 503 });

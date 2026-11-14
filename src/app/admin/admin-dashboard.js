@@ -6,7 +6,7 @@ import LockResetIcon from "@mui/icons-material/LockReset";
 import CloseIcon from "@mui/icons-material/Close";
 import VisibilityIcon from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOffOutlined";
-import { defaultProductCaution, defaultProductUsage, productCategories } from "../../lib/catalog";
+import { defaultProductCaution, defaultProductUsage, mergeProductCategories, productCategories } from "../../lib/catalog";
 import { notifyCustomerOrderUpdate } from "../../lib/customer-order-updates";
 import { notifyProductCatalogUpdate } from "../../lib/product-catalog-updates";
 import BrandWordmark from "../components/brand-wordmark";
@@ -49,7 +49,10 @@ async function uploadImageFile(file) {
 export default function AdminDashboard({ username }) {
   const greeting = useSyncExternalStore(subscribeToTimeGreeting, timeBasedGreeting, getServerGreeting);
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState(productCategories);
   const [form, setForm] = useState(emptyForm);
+  const [categoryDraft, setCategoryDraft] = useState("");
+  const [categorySaving, setCategorySaving] = useState(false);
   const [nameDrafts, setNameDrafts] = useState({});
   const [priceDrafts, setPriceDrafts] = useState({});
   const [savingProductIds, setSavingProductIds] = useState({});
@@ -78,9 +81,11 @@ export default function AdminDashboard({ username }) {
     let cancelled = false;
     fetch("/api/admin/products")
       .then(readApiResponse)
-      .then(({ products: saved }) => {
+      .then(({ products: saved, categories: savedCategories }) => {
         if (cancelled) return;
+        if (!Array.isArray(savedCategories)) throw new Error("The product categories response is invalid.");
         setProducts(saved);
+        setCategories(mergeProductCategories(productCategories, savedCategories));
         setDatabaseReady(true);
       })
       .catch((error) => { if (!cancelled) setMessage(error.message); });
@@ -158,6 +163,28 @@ export default function AdminDashboard({ username }) {
       setForm(emptyForm);
       setMessage(`${saved.name} has been published.`);
     } catch (error) { setMessage(error.message); }
+  }
+
+  async function addCategory(event) {
+    event.preventDefault();
+    if (!databaseReady || categorySaving) return;
+    const name = categoryDraft.trim().replace(/\s+/g, " ");
+    if (!name) { setMessage("Enter a category name."); return; }
+    if (name.length > 50) { setMessage("Category names must be 50 characters or fewer."); return; }
+    setCategorySaving(true);
+    try {
+      const { category } = await readApiResponse(await fetch("/api/admin/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      }));
+      setCategories((current) => mergeProductCategories(current, [category]));
+      setForm((current) => ({ ...current, category }));
+      setCategoryDraft("");
+      notifyProductCatalogUpdate();
+      setMessage(`${category} has been added as a category.`);
+    } catch (error) { setMessage(error.message); }
+    finally { setCategorySaving(false); }
   }
 
   async function handleImageUpload(event) {
@@ -349,7 +376,7 @@ export default function AdminDashboard({ username }) {
             <section className="listing-form-section" aria-labelledby="listing-details-heading">
               <div className="listing-section-heading"><span>01</span><h3 id="listing-details-heading">Product details</h3></div>
               <label>Product name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="e.g. Sneakers" /></label>
-              <div className="field-row listing-field-row"><label>Category<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })}>{productCategories.map((category) => <option key={category}>{category}</option>)}</select></label><label>Price (GHS)<input required min="0.01" step="0.01" type="number" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} placeholder="36.00" /></label></div>
+              <div className="field-row listing-field-row"><label>Category<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })}>{categories.map((category) => <option key={category}>{category}</option>)}</select></label><label>Price (GHS)<input required min="0.01" step="0.01" type="number" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} placeholder="36.00" /></label></div>
               <label>Size<input value={form.size} onChange={(event) => setForm({ ...form, size: event.target.value })} placeholder="One size" /></label>
               <div className="listing-image-field">
                 <span className="listing-field-label">Product image <span>Required</span></span>
@@ -373,6 +400,14 @@ export default function AdminDashboard({ username }) {
       </form>
       <section className="catalog-panel">
         <div className="panel-heading"><div><p className="atelier-kicker">Live catalogue</p><h2>Products</h2></div><span className="product-count">{databaseReady ? `${products.length} live` : "Database unavailable"}</span></div>
+        <form className="category-create-form" onSubmit={addCategory}>
+          <label htmlFor="admin-new-category">Add a category</label>
+          <div className="category-create-controls">
+            <input id="admin-new-category" maxLength={50} required value={categoryDraft} onChange={(event) => setCategoryDraft(event.target.value)} placeholder="e.g. Accessories" />
+            <button type="submit" disabled={!databaseReady || categorySaving}>{categorySaving ? "Adding…" : "Add"}</button>
+          </div>
+          <p>New categories are saved and become available in the product form and storefront filters.</p>
+        </form>
         <details className="catalog-dropdown">
           <summary><span>Browse and manage products</span><span className="catalog-dropdown-count">{products.length}</span></summary>
           <div className="catalog-list">{products.map((product) => <article key={product.id} className="catalog-item">

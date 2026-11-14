@@ -33,7 +33,6 @@ import { subscribeToProductCatalogUpdates } from "../lib/product-catalog-updates
 import { publishCustomerSession, subscribeToCustomerSession } from "../lib/customer-session";
 import { whatsappHref } from "../lib/contact";
 
-const categories = ["All", ...productCategories];
 const guestCartStorageKey = "sabbybestcollection:guest-cart";
 const money = new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS", minimumFractionDigits: 2 });
 const accountSections = [
@@ -63,6 +62,7 @@ function AccountEmptyState({ title, message, action, onAction }) {
 
 export default function Home() {
   const [products, setProducts] = useState(initialProducts);
+  const [availableCategories, setAvailableCategories] = useState(productCategories);
   const [cart, setCart] = useState([]);
   const [cartHydrated, setCartHydrated] = useState(false);
   const [wishlist, setWishlist] = useState([]);
@@ -214,9 +214,11 @@ export default function Home() {
         const body = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(body.error || "Shared products are unavailable.");
         if (!Array.isArray(body.products)) throw new Error("The product catalogue response is invalid.");
+        if (!Array.isArray(body.categories)) throw new Error("The product categories response is invalid.");
         if (cancelled) return;
         reportedProductsError = false;
         setProducts((current) => JSON.stringify(current) === JSON.stringify(body.products) ? current : body.products);
+        setAvailableCategories((current) => JSON.stringify(current) === JSON.stringify(body.categories) ? current : body.categories);
         const productsById = new Map(body.products.map((product) => [product.id, product]));
         setCart((current) => {
           const updated = current.flatMap((item) => {
@@ -554,7 +556,7 @@ export default function Home() {
         </header>
         {activeView === "categories" && <div className="catalog-controls has-category-tabs">
           <div className="category-tabs" role="group" aria-label="Filter products by category">
-            {categories.map((category) => {
+            {["All", ...availableCategories].map((category) => {
               return <button key={category} type="button" aria-pressed={activeCategory === category} className={activeCategory === category ? "active" : ""} onClick={() => setActiveCategory(category)}>
                 {category}
               </button>;

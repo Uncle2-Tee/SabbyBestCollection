@@ -1814,6 +1814,9 @@ button:focus-visible,
 .page-view .category-tabs button:hover,
 .page-view .category-tabs button.active { color:var(--page-accent-dark); }
 .page-view .category-tabs button.active::after { background:var(--page-accent); }
+.page-view .category-tabs button,
+.page-view .category-tabs button:hover,
+.page-view .category-tabs button.active { color:#000; }
 .page-view .wishlist-rating.rated { color:var(--page-accent-dark); }
 .page-view .checkout-form input:focus,
 .page-view .checkout-form textarea:focus {

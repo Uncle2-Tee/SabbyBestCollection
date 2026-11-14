@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { initialProducts } from "../../../lib/catalog";
+import { initialProducts, mergeProductCategories, productCategories } from "../../../lib/catalog";
 import { prisma } from "../../../lib/prisma";
 import { productFromDatabaseRow } from "../../../lib/products";
 
@@ -29,7 +29,10 @@ async function findProductsWithRetry() {
 export async function GET() {
   if (!process.env.DATABASE_URL) {
     if (process.env.NODE_ENV === "development") {
-      return NextResponse.json({ products: initialProducts });
+      return NextResponse.json({
+        products: initialProducts,
+        categories: mergeProductCategories(productCategories, initialProducts.map((product) => product.category)),
+      });
     }
 
     return NextResponse.json(
@@ -39,13 +42,26 @@ export async function GET() {
   }
 
   try {
-    const products = await findProductsWithRetry();
-    return NextResponse.json({ products: products.map(productFromDatabaseRow) });
+    const [products, savedCategories] = await Promise.all([
+      findProductsWithRetry(),
+      prisma.productCategory.findMany({ orderBy: { createdAt: "asc" }, select: { name: true } }),
+    ]);
+    return NextResponse.json({
+      products: products.map(productFromDatabaseRow),
+      categories: mergeProductCategories(
+        productCategories,
+        savedCategories.map((category) => category.name),
+        products.map((product) => product.category),
+      ),
+    });
   } catch (error) {
     console.error("Could not read the product catalogue:", error);
     if (process.env.NODE_ENV === "development" && isTransientDatabaseError(error)) {
       console.warn("Using the local starter catalogue while PostgreSQL is unavailable.");
-      return NextResponse.json({ products: initialProducts });
+      return NextResponse.json({
+        products: initialProducts,
+        categories: mergeProductCategories(productCategories, initialProducts.map((product) => product.category)),
+      });
     }
     return NextResponse.json({ error: "Could not load products from the PostgreSQL database." }, { status: 503 });
   }

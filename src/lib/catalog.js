@@ -10,5 +10,22 @@ export const initialProducts = [
 
 export const productCategories = ["Dresses", "Footwear", "Jewelry", "Bedding", "Storage/Organizers", "Furniture", "Electronics"];
 
+export function normalizeProductCategoryName(name) {
+  return typeof name === "string" ? name.trim().replace(/\s+/g, " ") : "";
+}
+
+export function mergeProductCategories(...groups) {
+  const categories = new Map();
+  for (const group of groups) {
+    for (const category of group) {
+      const name = normalizeProductCategoryName(category);
+      if (!name) continue;
+      const key = name.toLowerCase();
+      if (!categories.has(key)) categories.set(key, name);
+    }
+  }
+  return [...categories.values()];
+}
+
 export const defaultProductUsage = "1. Unpack and inspect the item.\n2. Use as directed for its intended purpose.\n3. Follow the care instructions provided.";
 export const defaultProductCaution = "Keep small parts away from children.\nUse only as intended.\nStop using if damaged.";
