@@ -6,7 +6,7 @@ import { productFromDatabaseRow } from "../../../lib/products";
 export const runtime = "nodejs";
 
 const transientDatabaseErrorCodes = new Set(["P1001", "P1002", "P1008", "P1017", "P2024", "P2028"]);
-const productQueryRetryDelays = [500, 1000, 2000, 4000];
+const catalogueQueryRetryDelays = [500, 1000, 2000, 4000];
 
 function isTransientDatabaseError(error) {
   const code = error && typeof error === "object" && "code" in error ? error.code : undefined;
@@ -14,12 +14,17 @@ function isTransientDatabaseError(error) {
     || (error?.name === "PrismaClientInitializationError" && /Can't reach database server/i.test(error.message || ""));
 }
 
-async function findProductsWithRetry() {
+async function findCatalogueWithRetry() {
   for (let attempt = 0; ; attempt += 1) {
     try {
-      return await prisma.product.findMany({ orderBy: { sortOrder: "asc" } });
+      const products = await prisma.product.findMany({ orderBy: { sortOrder: "asc" } });
+      const savedCategories = await prisma.productCategory.findMany({
+        orderBy: { createdAt: "asc" },
+        select: { name: true },
+      });
+      return { products, savedCategories };
     } catch (error) {
-      const retryDelay = productQueryRetryDelays[attempt];
+      const retryDelay = catalogueQueryRetryDelays[attempt];
       if (!isTransientDatabaseError(error) || retryDelay === undefined) throw error;
       await new Promise((resolve) => setTimeout(resolve, retryDelay));
     }
@@ -42,10 +47,7 @@ export async function GET() {
   }
 
   try {
-    const [products, savedCategories] = await Promise.all([
-      findProductsWithRetry(),
-      prisma.productCategory.findMany({ orderBy: { createdAt: "asc" }, select: { name: true } }),
-    ]);
+    const { products, savedCategories } = await findCatalogueWithRetry();
     return NextResponse.json({
       products: products.map(productFromDatabaseRow),
       categories: mergeProductCategories(

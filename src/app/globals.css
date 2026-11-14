@@ -1785,6 +1785,7 @@ button:focus-visible,
 
 .page-view .site-header {
   border-bottom-color:rgba(249,115,22,.55);
+  border-top:1px solid rgba(249,115,22,.75);
 }
 .page-view .site-header { box-shadow:0 4px 20px rgba(17,17,17,.07); }
 .page-view .main-nav {
