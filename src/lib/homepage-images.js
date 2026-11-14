@@ -1,4 +1,5 @@
 export const permanentHomepageBackground = "/homepage-store-background.png";
+export const permanentHomepageBackgroundContinuation = "/homepage-background-continuation.png";
 
 export const defaultHomepageImages = {
   heroEditorial: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=1200&q=88",

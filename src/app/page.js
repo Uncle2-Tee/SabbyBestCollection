@@ -25,7 +25,7 @@ import StarIcon from "@mui/icons-material/StarRounded";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import Script from "next/script";
 import { initialProducts, productCategories } from "../lib/catalog";
-import { permanentHomepageBackground } from "../lib/homepage-images";
+import { permanentHomepageBackground, permanentHomepageBackgroundContinuation } from "../lib/homepage-images";
 import CustomerAccount from "./components/customer-account";
 import BrandWordmark from "./components/brand-wordmark";
 import { getCustomerSession } from "../lib/customer-auth-client";
@@ -546,6 +546,11 @@ export default function Home() {
         <div className="hero-benefits"><span><Icon name="help" size={15} /> 24/7 Support</span></div>
       </div>
     </section>
+    {activeView === "home" && <div
+      className="home-background-continuation"
+      aria-hidden="true"
+      style={{ "--home-background-continuation-image": `url("${permanentHomepageBackgroundContinuation}")` }}
+    />}
     {(activeView === "shop" || activeView === "categories" || activeView === "about") && <>
       <section className={`shop-section${activeView === "categories" ? " category-shop-section" : ""}`} id="shop">
         <header className="catalog-heading">

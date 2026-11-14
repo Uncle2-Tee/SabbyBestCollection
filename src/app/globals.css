@@ -1907,3 +1907,27 @@ button:focus-visible,
   .payment-receipt-details { grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px 10px; }
   .payment-receipt-details .payment-receipt-reference { grid-column:1/-1; }
 }
+.page-home .home-background-continuation {
+  position:relative;
+  min-height:clamp(280px,36vw,460px);
+  margin-top:-56px;
+  overflow:hidden;
+  background-color:#29221b;
+  background-image:
+    linear-gradient(180deg,rgba(17,17,17,.2),rgba(17,17,17,.04) 26%,rgba(17,17,17,.14)),
+    var(--home-background-continuation-image);
+  background-position:center 52%;
+  background-size:cover;
+  background-repeat:no-repeat;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 56px);
+  mask-image:linear-gradient(to bottom,transparent 0,#000 56px);
+}
+@media (max-width:700px) {
+  .page-home .home-background-continuation {
+    min-height:300px;
+    margin-top:-48px;
+    background-position:center;
+    -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 48px);
+    mask-image:linear-gradient(to bottom,transparent 0,#000 48px);
+  }
+}
